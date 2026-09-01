@@ -8,6 +8,7 @@ import {
   Video,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
+import { HeroSection } from "@/components/hero-section";
 import { Reveal } from "@/components/reveal";
 import { SectionIcon } from "@/components/section-icon";
 
@@ -97,97 +98,7 @@ const trustPoints = [
 export default function HomePage() {
   return (
     <div className="premium-shell">
-      {/* 1. Awareness */}
-      <section className="relative overflow-hidden">
-        <div className="container-page grid items-center gap-12 pb-16 pt-12 lg:grid-cols-[1.1fr_0.9fr] lg:pb-24 lg:pt-16">
-          <Reveal>
-            <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(16,24,40,0.06)] bg-white/80 px-3 py-1 text-[12px] font-semibold tracking-[0.08em] text-[#667085] shadow-[0_8px_24px_rgba(16,24,40,0.04)]">
-                MEDICAL DEVICE COLLABORATION PLATFORM
-              </div>
-
-              <h1 className="font-display max-w-[12ch] text-[3.25rem] font-extrabold leading-[0.95] tracking-[-0.05em] text-[#101828] sm:text-[4.5rem] lg:text-[5rem]">
-                Advancing Healthcare
-                <span className="accent-dot"> Together</span>
-              </h1>
-
-              <p className="mt-6 max-w-lg text-[17px] leading-relaxed text-[#667085]">
-                A secure hub where clinicians, engineers, and advisors collaborate on
-                medical device breakthroughs — with access limited to exactly what each
-                member needs.
-              </p>
-
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/#access"
-                  className="btn-primary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold"
-                >
-                  Get Secure Access
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/#ecosystem"
-                  className="btn-secondary rounded-full px-6 py-3 text-sm font-semibold"
-                >
-                  Explore Ecosystem
-                </Link>
-              </div>
-
-              <div className="mt-10 flex flex-wrap gap-2">
-                {["Sonographers", "Engineering", "Clinical", "IP / Legal"].map(
-                  (label) => (
-                    <span
-                      key={label}
-                      className="rounded-full bg-[#e6f7f5] px-3.5 py-1.5 text-[12px] font-semibold text-[#0f766e]"
-                    >
-                      {label}
-                    </span>
-                  ),
-                )}
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal delayMs={120} className="relative mx-auto w-full max-w-md">
-            <div className="hero-orb relative overflow-hidden rounded-[2.5rem] p-6 sm:p-8">
-              <div className="absolute inset-x-8 top-8 h-24 rounded-full bg-white/50 blur-2xl" />
-              <div className="float-slow absolute left-1/2 top-[10%] h-40 w-40 -translate-x-1/2 rounded-full bg-gradient-to-br from-teal-300/40 via-white to-cyan-200/50 blur-xl" />
-
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="rounded-3xl bg-white/70 p-5 shadow-[0_10px_40px_rgba(16,24,40,0.06)] ring-1 ring-white/80 backdrop-blur">
-                  <BrandLogo variant="horizontal" size="lg" href={null} priority />
-                </div>
-                <div className="soft-card mt-6 w-full rounded-2xl p-4 text-left">
-                  <div className="mb-3 flex items-center justify-between text-[12px]">
-                    <span className="font-semibold text-[#101828]">Secure Hub Preview</span>
-                    <span className="rounded-full bg-[#e6f7f5] px-2 py-0.5 font-semibold text-[#0f766e]">
-                      Protected
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      "Sonography Advisors",
-                      "Engineering Collaborative",
-                      "Shared Design",
-                      "IP / Legal",
-                    ].map((item) => (
-                      <div
-                        key={item}
-                        className="flex items-center justify-between rounded-xl bg-[#f5f7fa] px-3 py-2.5"
-                      >
-                        <span className="text-sm font-medium text-[#101828]">{item}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-[#0f766e]">
-                          Access
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* 2. Interest — Who it's for */}
       <section id="who" className="section-pad border-t border-[rgba(16,24,40,0.06)] bg-white/65">

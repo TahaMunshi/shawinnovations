@@ -6,10 +6,10 @@ export async function SiteHeader() {
   const session = await auth();
 
   return (
-    <header className="sticky top-0 z-50 pt-3">
+    <header className="sticky top-0 z-50 pt-4">
       <div className="container-page">
-        <div className="site-header-bar flex h-16 items-center justify-between gap-4 rounded-2xl px-4 sm:px-5">
-          <div className="flex min-w-0 items-center">
+        <div className="site-header-bar flex h-[4.35rem] items-center justify-between gap-6 px-5 sm:px-7">
+          <div className="header-logo-glow flex min-w-0 items-center">
             <span className="sm:hidden">
               <BrandLogo variant="mark" size="md" priority />
             </span>
@@ -18,18 +18,14 @@ export async function SiteHeader() {
             </span>
           </div>
 
-          <nav className="hidden items-center gap-1 text-[13px] font-medium text-[#475467] lg:flex">
+          <nav className="hidden items-center gap-8 lg:flex">
             {[
               { href: "/#who", label: "Who It's For" },
               { href: "/#ecosystem", label: "Ecosystem" },
               { href: "/#how-it-works", label: "How It Works" },
               { href: "/#security", label: "Security" },
             ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-full px-3 py-2 transition hover:bg-[#f2f4f7] hover:text-[#101828]"
-              >
+              <Link key={item.href} href={item.href} className="nav-link">
                 {item.label}
               </Link>
             ))}
@@ -41,15 +37,12 @@ export async function SiteHeader() {
                 {session.user.role === "ADMIN" && (
                   <Link
                     href="/admin"
-                    className="hidden rounded-full px-3 py-2 text-sm font-semibold text-[#0f766e] hover:bg-[#e6f7f5] md:inline-flex"
+                    className="hidden rounded-full px-3 py-2 text-sm font-semibold text-[#00a892] hover:bg-[#e8fffa] md:inline-flex"
                   >
                     Admin
                   </Link>
                 )}
-                <Link
-                  href="/dashboard"
-                  className="btn-primary rounded-full px-4 py-2 text-sm font-semibold"
-                >
+                <Link href="/dashboard" className="dashboard-pill">
                   Dashboard
                 </Link>
               </>
@@ -57,14 +50,11 @@ export async function SiteHeader() {
               <>
                 <Link
                   href="/#access"
-                  className="hidden rounded-full px-3 py-2 text-sm font-semibold text-[#475467] hover:bg-[#f2f4f7] hover:text-[#101828] md:inline-flex"
+                  className="nav-link hidden md:inline-flex"
                 >
                   Request Access
                 </Link>
-                <Link
-                  href="/login"
-                  className="btn-primary rounded-full px-4 py-2 text-sm font-semibold"
-                >
+                <Link href="/login" className="dashboard-pill">
                   Member Login
                 </Link>
               </>

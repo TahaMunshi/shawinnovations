@@ -19,7 +19,7 @@ const createUserSchema = z.object({
   role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),
 });
 
-export async function createUserAction(formData: FormData) {
+export async function createUserAction(formData: FormData): Promise<void> {
   const session = await requireAdmin();
   const parsed = createUserSchema.safeParse({
     name: formData.get("name"),
@@ -32,14 +32,14 @@ export async function createUserAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: "Invalid user details." };
+    return;
   }
 
   const existing = await prisma.user.findUnique({
     where: { email: parsed.data.email.toLowerCase() },
   });
   if (existing) {
-    return { error: "A user with that email already exists." };
+    return;
   }
 
   const user = await prisma.user.create({
@@ -63,7 +63,6 @@ export async function createUserAction(formData: FormData) {
   });
 
   revalidatePath("/admin");
-  return { success: true };
 }
 
 export async function setUserActiveAction(userId: string, isActive: boolean) {
@@ -169,7 +168,7 @@ const meetingSchema = z.object({
   userIds: z.array(z.string()).default([]),
 });
 
-export async function createMeetingAction(formData: FormData) {
+export async function createMeetingAction(formData: FormData): Promise<void> {
   const session = await requireAdmin();
   const userIds = formData.getAll("userIds").map(String);
 
@@ -183,7 +182,7 @@ export async function createMeetingAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: "Invalid meeting details." };
+    return;
   }
 
   const start = new Date(parsed.data.scheduledAt);
@@ -222,5 +221,4 @@ export async function createMeetingAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/meetings");
   revalidatePath("/dashboard");
-  return { success: true, mode: zoom.mode };
 }

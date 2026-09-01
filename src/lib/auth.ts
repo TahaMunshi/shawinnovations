@@ -18,6 +18,7 @@ declare module "next-auth" {
       name: string;
       role: Role;
       isActive: boolean;
+      emailVerified?: Date | null;
     };
   }
 }
@@ -101,13 +102,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.user = {
-        id: token.id,
-        email: token.email as string,
-        name: token.name as string,
-        role: token.role,
-        isActive: token.isActive,
-      };
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.email = (token.email as string) ?? session.user.email;
+        session.user.name = (token.name as string) ?? session.user.name;
+        session.user.role = token.role;
+        session.user.isActive = token.isActive;
+        session.user.emailVerified = session.user.emailVerified ?? null;
+      }
       return session;
     },
   },
