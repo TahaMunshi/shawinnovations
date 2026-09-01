@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  email         String           @unique
+  passwordHash  String
+  name          String
+  role          Role             @default(MEMBER)
+  headshotUrl   String?
+  certification String?
+  organization  String?
+  title         String?
+  phone         String?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  permissions   UserPermission[]
+  meetings      MeetingAccess[]
+  auditLogs     AuditLog[]       @relation("ActorLogs")
+}
+
+model Section {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  slug        String           @unique
+  name        String
+  description String
+  category    String
+  icon        String
+  isBlank     Boolean          @default(false)
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  permissions UserPermission[]
+  meetings    Meeting[]
+  milestones  Milestone[]
+  resources   Resource[]
+}
+
+model UserPermission {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  sectionId String    @db.ObjectId
+  grantedAt DateTime  @default(now())
+  grantedBy String?
+  revokedAt DateTime?
+  isActive  Boolean   @default(true)
+  user      User      @relation(fields: [userId], references: [id])
+  section   Section   @relation(fields: [sectionId], references: [id])
+
+  @@unique([userId, sectionId])
+  @@index([userId])
+  @@index([sectionId])
+}
+
+model Meeting {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  sectionId     String?         @db.ObjectId
+  scheduledAt   DateTime
+  durationMin   Int             @default(60)
+  zoomJoinUrl   String?
+  zoomMeetingId String?
+  zoomPasscode  String?
+  createdById   String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  section       Section?        @relation(fields: [sectionId], references: [id])
+  access        MeetingAccess[]
+  minutes       MeetingMinutes?
+}
+
+model MeetingAccess {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  meetingId String  @db.ObjectId
+  userId    String  @db.ObjectId
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+}
+
+model MeetingMinutes {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  meetingId String   @unique @db.ObjectId
+  content   String
+  summary   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  meeting   Meeting  @relation(fields: [meetingId], references: [id])
+}
+
+model Milestone {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  sectionId    String    @db.ObjectId
+  title        String
+  description  String?
+  status       String    @default("planned")
+  dueDate      DateTime?
+  cadRef       String?
+  prototypeRef String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  section      Section   @relation(fields: [sectionId], references: [id])
+}
+
+model Resource {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  sectionId   String   @db.ObjectId
+  title       String
+  description String?
+  type        String
+  url         String?
+  createdAt   DateTime @default(now())
+  section     Section  @relation(fields: [sectionId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  actorId    String?  @db.ObjectId
+  action     String
+  targetType String
+  targetId   String?
+  details    String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("ActorLogs", fields: [actorId], references: [id])
+}

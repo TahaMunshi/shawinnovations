@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shaw Innovations — Medical Device Collaboration Platform
 
-## Getting Started
+Secure collaboration hub for clinicians, engineers, advisors, and administrators working on medical device innovation.
 
-First, run the development server:
+## Features
+
+- Public marketing site themed from the Shaw Innovations reference design
+- Password-protected member areas with role-based section access
+- Sonographer Advisors dashboard and 12+ collaboration panels from the project brief
+- Centralized Admin panel to view users, profiles, and exact section permissions
+- Grant / revoke access at user and section level
+- Zoom meeting management (live API when credentials are set; local demo mode otherwise)
+- Directory fields for organization, title, headshot URL, and sonographer certifications
+- Milestones with CAD / prototype cross-references and meeting minutes
+
+## Stack
+
+- Next.js (App Router) + TypeScript + Tailwind CSS
+- Auth.js (NextAuth v5) credentials auth with JWT sessions
+- Prisma + SQLite (swap `DATABASE_URL` to PostgreSQL for production)
+- Zoom Server-to-Server OAuth integration hooks
+
+## Quick start
 
 ```bash
+npm install
+npx prisma migrate dev --name init
+npm run db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Demo accounts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@shawinnovations.com` | `ShawDemo2026!` |
+| Sonographer Advisor | `advisor@shawinnovations.com` | `ShawDemo2026!` |
+| Engineer | `engineer@shawinnovations.com` | `ShawDemo2026!` |
 
-## Learn More
+## Environment
 
-To learn more about Next.js, take a look at the following resources:
+Copy `.env.example` to `.env`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `DATABASE_URL` — SQLite by default (`file:./dev.db`)
+- `AUTH_SECRET` — required for sessions
+- `ZOOM_ACCOUNT_ID` / `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` — optional Zoom credentials
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Protected panels (seeded)
 
-## Deploy on Vercel
+Sonography Advisors, Advent Health Orlando, Orlando Regional Health, HCA Florida, Sonographers Outside Florida, Shared Design / Prototypes, Engineering Collaborative, University Faculty Partners, Prospective Partners, Clinical Advisors, Ideas Board, IP / Legal, plus 4 reserved blank future panels.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Source requirements live in `docs/Fred-Shae-Doc.docx`. Design reference image is at `public/design-reference.jpg`.
