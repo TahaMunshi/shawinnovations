@@ -11,8 +11,11 @@
   --line: rgba(16, 24, 40, 0.08);
   --shadow: 0 10px 28px rgba(16, 24, 40, 0.06);
   --shadow-soft: 0 6px 18px rgba(16, 24, 40, 0.05);
-  --container: 72rem;
-  --section-y: 5rem;
+  /* Fluid page width — laptop → 1920+ */
+  --container: min(92rem, calc(100vw - 2rem));
+  --section-y: clamp(3.5rem, 5vw, 6rem);
+  --page-gutter: clamp(1rem, 2.2vw, 2rem);
+  --hero-height: clamp(34rem, 78dvh, 48rem);
 
   /* Sharp radius scale — cards/sections stay squared; buttons stay lightly rounded */
   --radius-xs: 0.25rem;
@@ -23,6 +26,20 @@
   --radius-2xl: 0.75rem;
   --radius-btn: 0.5rem;
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --container: min(96rem, calc(100vw - 3rem));
+    --hero-height: clamp(36rem, 74dvh, 52rem);
+  }
+}
+
+@media (min-width: 1920px) {
+  :root {
+    --container: min(100rem, calc(100vw - 4rem));
+    --hero-height: clamp(38rem, 72dvh, 54rem);
+  }
 }
 
 @theme inline {
@@ -120,13 +137,7 @@ h4,
   width: 100%;
   max-width: var(--container);
   margin-inline: auto;
-  padding-inline: 1rem;
-}
-
-@media (min-width: 640px) {
-  .container-page {
-    padding-inline: 1.5rem;
-  }
+  padding-inline: var(--page-gutter);
 }
 
 .section-pad {
@@ -323,20 +334,20 @@ h4,
   }
 }
 
-/* ===== Diagonal hero (template-inspired, Shaw brand colors, no photos) ===== */
+/* ===== Diagonal hero — fluid across laptop → 1920 presentation ===== */
 .hero-diagonal {
   position: relative;
-  padding: 1.25rem 0 1.75rem;
+  padding: clamp(0.85rem, 1.6vw, 1.5rem) 0 clamp(1.25rem, 2vw, 2rem);
   background: #f5f7fa;
 }
 
 .hero-diagonal-frame {
   position: relative;
   margin-inline: auto;
-  width: min(calc(100% - 2rem), var(--container));
-  min-height: calc(100dvh - 5.5rem);
+  width: min(calc(100% - (var(--page-gutter) * 2)), var(--container));
+  height: var(--hero-height);
   overflow: hidden;
-  border-radius: 1rem;
+  border-radius: clamp(0.85rem, 1.2vw, 1.25rem);
   background: #0a1f44;
   box-shadow: 0 24px 60px rgba(10, 31, 68, 0.18);
   display: grid;
@@ -345,13 +356,13 @@ h4,
 
 @media (min-width: 960px) {
   .hero-diagonal-frame {
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   }
 }
 
 .hero-diagonal-visual {
   position: relative;
-  min-height: 18rem;
+  min-height: 0;
   overflow: hidden;
   background:
     radial-gradient(circle at 22% 30%, rgba(20, 184, 166, 0.35), transparent 40%),
@@ -361,8 +372,7 @@ h4,
 
 @media (min-width: 960px) {
   .hero-diagonal-visual {
-    min-height: 100%;
-    clip-path: polygon(0 0, 100% 0, 72% 100%, 0 100%);
+    clip-path: polygon(0 0, 100% 0, 74% 100%, 0 100%);
   }
 }
 
@@ -386,38 +396,49 @@ h4,
   filter: blur(8px);
 }
 
-/* Stack tiles + contact so nothing overlaps */
+/* Stack tiles + contact as one grouped block (no tall empty gap) */
 .hero-diagonal-left-content {
   position: relative;
   z-index: 2;
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.75rem 1.5rem 1.5rem;
+  justify-content: center;
+  gap: clamp(1.25rem, 2.2vh, 2rem);
+  padding: clamp(1.25rem, 2.5vw, 2.5rem);
+  padding-right: clamp(1.25rem, 2.5vw, 2.5rem);
 }
 
 @media (min-width: 960px) {
   .hero-diagonal-left-content {
-    /* Extra right padding so content stays inside the diagonal cut */
-    padding: 2.25rem 22% 1.75rem 1.75rem;
+    /* Keep group inside the diagonal cut across all widths */
+    padding: clamp(1.5rem, 3vh, 2.75rem) clamp(18%, 10vw, 24%) clamp(1.5rem, 3vh, 2.75rem)
+      clamp(1.5rem, 2.5vw, 2.75rem);
   }
 }
 
 .hero-diagonal-icons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  width: 100%;
-  max-width: 18.5rem;
+  gap: clamp(0.65rem, 1.2vw, 1rem);
+  width: min(100%, 22rem);
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1280px) {
   .hero-diagonal-icons {
-    max-width: 19.5rem;
-    gap: 0.85rem;
-    margin-top: 0.5rem;
+    width: min(100%, 24rem);
+  }
+}
+
+@media (min-width: 1600px) {
+  .hero-diagonal-icons {
+    width: min(100%, 27rem);
+  }
+}
+
+@media (min-width: 1920px) {
+  .hero-diagonal-icons {
+    width: min(100%, 29rem);
   }
 }
 
@@ -429,11 +450,11 @@ h4,
   gap: 0.55rem;
   aspect-ratio: 1;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 1.15rem;
+  border-radius: clamp(0.9rem, 1.2vw, 1.35rem);
   background: rgba(8, 28, 48, 0.4);
-  padding: 0.85rem 0.65rem;
+  padding: clamp(0.7rem, 1.2vw, 1.1rem);
   color: #ecfeff;
-  font-size: 12.5px;
+  font-size: clamp(12px, 0.85vw, 15px);
   font-weight: 700;
   letter-spacing: -0.01em;
   text-align: center;
@@ -442,21 +463,9 @@ h4,
 }
 
 .hero-diagonal-icon-card svg {
-  width: 1.65rem;
-  height: 1.65rem;
+  width: clamp(1.5rem, 1.6vw, 2.15rem);
+  height: clamp(1.5rem, 1.6vw, 2.15rem);
   stroke-width: 1.9;
-}
-
-@media (min-width: 960px) {
-  .hero-diagonal-icon-card {
-    border-radius: 1.25rem;
-    font-size: 13.5px;
-  }
-
-  .hero-diagonal-icon-card svg {
-    width: 1.85rem;
-    height: 1.85rem;
-  }
 }
 
 .hero-diagonal-meta {
@@ -467,14 +476,14 @@ h4,
 
 .hero-diagonal-meta-title {
   font-family: var(--font-display), sans-serif;
-  font-size: 1.05rem;
+  font-size: clamp(1rem, 1.1vw, 1.25rem);
   font-weight: 800;
   letter-spacing: -0.03em;
 }
 
 .hero-diagonal-meta-line {
   margin-top: 0.15rem;
-  font-size: 12px;
+  font-size: clamp(11px, 0.8vw, 13px);
   color: rgba(255, 255, 255, 0.72);
 }
 
@@ -483,7 +492,7 @@ h4,
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 12px;
+  font-size: clamp(11px, 0.8vw, 13px);
   font-weight: 600;
   color: #99f6e4;
 }
@@ -497,18 +506,13 @@ h4,
   z-index: 2;
   display: flex;
   align-items: center;
-  padding: 2rem 1.5rem 2.25rem;
-}
-
-@media (min-width: 960px) {
-  .hero-diagonal-copy {
-    padding: 2.5rem 2.75rem 2.5rem 1.25rem;
-  }
+  min-width: 0;
+  padding: clamp(1.5rem, 3vw, 3rem) clamp(1.25rem, 3vw, 3.25rem);
 }
 
 .hero-diagonal-eyebrow {
   display: inline-block;
-  font-size: 12px;
+  font-size: clamp(11px, 0.75vw, 13px);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -518,7 +522,7 @@ h4,
 .hero-diagonal-title {
   margin-top: 0.85rem;
   color: #ffffff;
-  font-size: clamp(2.4rem, 5vw, 3.9rem);
+  font-size: clamp(2.2rem, 3.6vw, 4.5rem);
   font-weight: 800;
   line-height: 0.98;
   letter-spacing: -0.055em;
@@ -530,9 +534,9 @@ h4,
 
 .hero-diagonal-sub {
   margin-top: 1rem;
-  max-width: 28rem;
+  max-width: min(32rem, 100%);
   color: rgba(226, 232, 240, 0.82);
-  font-size: 0.95rem;
+  font-size: clamp(0.9rem, 1.05vw, 1.05rem);
   line-height: 1.65;
 }
 
@@ -551,7 +555,7 @@ h4,
   border-radius: 9999px;
   background: #14b8a6;
   padding: 0.75rem 1.25rem;
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 0.95vw, 0.95rem);
   font-weight: 700;
   color: #042f2e;
   box-shadow: 0 10px 24px rgba(20, 184, 166, 0.35);
@@ -562,7 +566,7 @@ h4,
 }
 
 .hero-diagonal-link {
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 0.95vw, 0.95rem);
   font-weight: 650;
   color: rgba(255, 255, 255, 0.85);
   text-decoration: underline;
@@ -578,7 +582,7 @@ h4,
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 12px;
+  font-size: clamp(11px, 0.8vw, 13px);
   font-weight: 600;
   color: rgba(153, 246, 228, 0.9);
 }
@@ -592,12 +596,13 @@ h4,
   .hero-diagonal-slash {
     display: block;
     position: absolute;
-    top: -10%;
-    bottom: -10%;
-    left: 48%;
+    top: -12%;
+    bottom: -12%;
+    /* Tracks the diagonal cut across fluid widths */
+    left: 46.5%;
     z-index: 3;
     width: 3px;
-    transform: rotate(16deg);
+    transform: rotate(14deg);
     background: linear-gradient(
       180deg,
       rgba(45, 212, 191, 0.05),
@@ -611,13 +616,50 @@ h4,
   }
 }
 
+@media (min-width: 1440px) {
+  .hero-diagonal-slash {
+    left: 47%;
+  }
+}
+
+@media (min-width: 1920px) {
+  .hero-diagonal-slash {
+    left: 47.5%;
+  }
+}
+
 @media (max-width: 959px) {
   .hero-diagonal-frame {
-    min-height: auto;
+    height: auto;
+    min-height: 0;
   }
 
   .hero-diagonal-visual {
-    min-height: auto;
+    min-height: 0;
+  }
+
+  .hero-diagonal-left-content {
+    justify-content: flex-start;
+    padding-bottom: 1.5rem;
+  }
+
+  .hero-diagonal-icons {
+    width: min(100%, 20rem);
+  }
+}
+
+/* Short laptop screens — keep hero fully visible without scroll */
+@media (max-height: 780px) and (min-width: 960px) {
+  :root {
+    --hero-height: clamp(28rem, 86dvh, 40rem);
+  }
+
+  .hero-diagonal-title {
+    font-size: clamp(2rem, 3.2vw, 3.4rem);
+  }
+
+  .hero-diagonal-icons {
+    width: min(100%, 18rem);
   }
 }
 
