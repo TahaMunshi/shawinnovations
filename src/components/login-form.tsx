@@ -55,7 +55,7 @@ export function LoginForm({
       </div>
 
       {formError && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {formError}
         </div>
       )}
@@ -88,7 +88,7 @@ export function LoginForm({
       <button
         type="submit"
         disabled={pending}
-        className="btn-primary w-full rounded-full px-4 py-3 text-sm font-semibold disabled:opacity-60"
+        className="btn-primary w-full px-4 py-3 text-sm font-semibold disabled:opacity-60"
       >
         {pending ? "Signing in..." : "Sign in securely"}
       </button>

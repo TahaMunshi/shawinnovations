@@ -1,14 +1,16 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  CheckCircle2,
+  ClipboardList,
   FolderLock,
+  KeyRound,
   ShieldCheck,
   Users,
   Video,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { HeroSection } from "@/components/hero-section";
+import { MediaFrame } from "@/components/media-frame";
 import { Reveal } from "@/components/reveal";
 import { SectionIcon } from "@/components/section-icon";
 
@@ -37,14 +39,19 @@ const audiences = [
 
 const ecosystemCards = [
   {
-    title: "Sonographer Advisors Hub",
-    description: "Centralized resources and advisor workflows in one protected space.",
-    icon: "stethoscope",
+    title: "Hospital & Clinical Partners",
+    description: "Dedicated facility-facing panels for hospital communities and clinical collaboration.",
+    icon: "hospital",
   },
   {
     title: "Engineering Collaborative",
     description: "Mechanical, electrical, and industrial design with CAD & prototypes.",
     icon: "cog",
+  },
+  {
+    title: "IP / Legal",
+    description: "Protected access for intellectual property and legal materials.",
+    icon: "scale",
   },
   {
     title: "Secure Dashboards",
@@ -60,11 +67,6 @@ const ecosystemCards = [
     title: "Administrative Control",
     description: "Grant, update, and revoke access across every protected section.",
     icon: "panel",
-  },
-  {
-    title: "Future-Ready Panels",
-    description: "Blank reserved communities ready as the collaboration network grows.",
-    icon: "layers",
   },
 ];
 
@@ -87,12 +89,37 @@ const steps = [
   },
 ];
 
-const trustPoints = [
-  "Role-based section permissions on every protected route",
-  "Admin visibility into users, profiles, and exact access maps",
-  "Instant access revocation for people and individual panels",
-  "Zoom meeting invites limited to relevant collaborators",
-  "Audit trail for sensitive permission changes",
+const securityPillars = [
+  {
+    icon: FolderLock,
+    title: "Protected Sections",
+    text: "8+ secured communities with permission checks on every request.",
+  },
+  {
+    icon: Users,
+    title: "Admin Visibility",
+    text: "See users, profiles, and exact panel access in one place.",
+  },
+  {
+    icon: Video,
+    title: "Scoped Meetings",
+    text: "Zoom invites limited to the collaborators who should attend.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Instant Revocation",
+    text: "Remove a person or a single section’s access immediately.",
+  },
+  {
+    icon: ClipboardList,
+    title: "Audit Trail",
+    text: "Track sensitive permission changes for accountability.",
+  },
+  {
+    icon: KeyRound,
+    title: "Least Privilege",
+    text: "Members only enter the rooms assigned to their role.",
+  },
 ];
 
 export default function HomePage() {
@@ -100,28 +127,30 @@ export default function HomePage() {
     <div className="premium-shell">
       <HeroSection />
 
-      {/* 2. Interest — Who it's for */}
-      <section id="who" className="section-pad border-t border-[rgba(16,24,40,0.06)] bg-white/65">
+      <section id="who" className="section-pad border-t border-[rgba(16,24,40,0.08)] bg-white">
         <div className="container-page">
-          <Reveal className="mb-10 max-w-2xl">
+          <Reveal className="max-w-2xl">
             <p className="eyebrow">Who It&apos;s For</p>
-            <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#101828] sm:text-5xl">
-              Built for every collaborator in the device journey
-              <span className="text-[#0d9488]">.</span>
+            <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#0A1F44] sm:text-5xl">
+              Built for every collaborator in the device journey.
             </h2>
+            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[#667085]">
+              From clinical advisors and hospital partners to engineering and legal teams —
+              each community works in a dedicated, permissioned space.
+            </p>
           </Reveal>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" style={{ counterReset: "funnel" }}>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {audiences.map((item, index) => (
-              <Reveal key={item.title} delayMs={index * 80} as="article">
-                <div className="soft-card-solid h-full rounded-[1.5rem] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(16,24,40,0.08)]">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5f7fa] text-[#0f766e]">
-                    <SectionIcon name={item.icon} />
+              <Reveal key={item.title} delayMs={index * 60}>
+                <div className="soft-card-solid h-full p-5">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center bg-[#f3f6f8] text-[#0f766e]">
+                    <SectionIcon name={item.icon} className="h-5 w-5" />
                   </div>
-                  <h3 className="font-display text-lg font-bold tracking-[-0.03em] text-[#101828]">
+                  <h3 className="font-display text-base font-bold tracking-[-0.02em] text-[#0A1F44]">
                     {item.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#667085]">{item.text}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[#667085]">{item.text}</p>
                 </div>
               </Reveal>
             ))}
@@ -129,15 +158,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. Interest — Ecosystem */}
-      <section id="ecosystem" className="section-pad">
+      <section id="ecosystem" className="section-pad bg-[#f7f9fb]">
         <div className="container-page">
           <Reveal className="mb-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="eyebrow">Ecosystem</p>
-              <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#101828] sm:text-5xl">
-                Collaboration panels that stay secure
-                <span className="text-[#0d9488]">.</span>
+              <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#0A1F44] sm:text-5xl">
+                Collaboration panels that stay secure.
               </h2>
             </div>
             <p className="max-w-md text-[15px] leading-relaxed text-[#667085]">
@@ -146,14 +173,14 @@ export default function HomePage() {
             </p>
           </Reveal>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {ecosystemCards.map((card, index) => (
-              <Reveal key={card.title} delayMs={index * 70} as="article">
-                <div className="soft-card-solid group h-full rounded-[1.6rem] p-6 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(16,24,40,0.08)]">
-                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f5f7fa] text-[#0f766e] transition group-hover:bg-[#e6f7f5]">
-                    <SectionIcon name={card.icon} className="h-6 w-6" />
+              <Reveal key={card.title} delayMs={index * 60} as="article">
+                <div className="soft-card-solid h-full p-5">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center bg-[#f3f6f8] text-[#0f766e]">
+                    <SectionIcon name={card.icon} className="h-5 w-5" />
                   </div>
-                  <h3 className="font-display text-xl font-bold tracking-[-0.03em] text-[#101828]">
+                  <h3 className="font-display text-lg font-bold tracking-[-0.03em] text-[#0A1F44]">
                     {card.title}
                   </h3>
                   <p className="mt-2 text-[14px] leading-relaxed text-[#667085]">
@@ -166,28 +193,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. Consideration — How it works */}
-      <section
-        id="how-it-works"
-        className="section-pad border-y border-[rgba(16,24,40,0.06)] bg-white/70"
-      >
+      <section id="how-it-works" className="section-pad border-y border-[rgba(16,24,40,0.08)] bg-white">
         <div className="container-page">
           <Reveal className="mb-10 max-w-2xl">
             <p className="eyebrow">How It Works</p>
-            <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#101828] sm:text-5xl">
-              A clear path from discovery to collaboration
-              <span className="text-[#0d9488]">.</span>
+            <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#0A1F44] sm:text-5xl">
+              A clear path from discovery to collaboration.
             </h2>
           </Reveal>
 
-          <div
-            className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-            style={{ counterReset: "funnel" }}
-          >
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" style={{ counterReset: "funnel" }}>
             {steps.map((step, index) => (
-              <Reveal key={step.title} delayMs={index * 90} as="article">
-                <div className="funnel-step soft-card-solid h-full rounded-[1.5rem] p-5">
-                  <h3 className="font-display text-lg font-bold tracking-[-0.03em] text-[#101828]">
+              <Reveal key={step.title} delayMs={index * 80} as="article">
+                <div className="funnel-step soft-card-solid h-full p-5">
+                  <h3 className="font-display text-lg font-bold tracking-[-0.03em] text-[#0A1F44]">
                     {step.title}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-[#667085]">{step.text}</p>
@@ -198,116 +217,75 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. Consideration — Security / trust */}
-      <section id="security" className="section-pad">
-        <div className="container-page grid gap-10 lg:grid-cols-2 lg:items-center">
-          <Reveal>
+      <section id="security" className="section-pad bg-[#f7f9fb]">
+        <div className="container-page">
+          <Reveal className="max-w-2xl">
             <p className="eyebrow">Security & Trust</p>
-            <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#101828] sm:text-5xl">
-              Designed for sensitive medical collaboration
-              <span className="text-[#0d9488]">.</span>
+            <h2 className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#0A1F44] sm:text-5xl">
+              Designed for sensitive medical collaboration.
             </h2>
             <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-[#667085]">
               Shaw Innovations prioritizes authentication, authorization, and admin
               control so hospital partners and advisors can collaborate without
               oversharing.
             </p>
-            <ul className="mt-8 space-y-3">
-              {trustPoints.map((item) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-3 text-[15px] font-medium text-[#344054]"
-                >
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e6f7f5] text-[#0f766e]">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
           </Reveal>
 
-          <Reveal delayMs={120}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                {
-                  icon: FolderLock,
-                  title: "Protected Sections",
-                  text: "8+ secured communities with checks on every request.",
-                },
-                {
-                  icon: Users,
-                  title: "Admin Visibility",
-                  text: "See users, profiles, and exact panel permissions.",
-                },
-                {
-                  icon: Video,
-                  title: "Zoom Meetings",
-                  text: "Invite only the collaborators who should attend.",
-                },
-                {
-                  icon: ShieldCheck,
-                  title: "Access Revocation",
-                  text: "Remove user or section access instantly when needed.",
-                },
-              ].map((item) => (
-                <div key={item.title} className="soft-card-solid rounded-[1.5rem] p-5">
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f5f7fa] text-[#0f766e]">
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {securityPillars.map((item, index) => (
+              <Reveal key={item.title} delayMs={index * 60}>
+                <div className="soft-card-solid h-full p-5">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center bg-[#f3f6f8] text-[#0f766e]">
                     <item.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="font-display text-lg font-bold tracking-[-0.03em] text-[#101828]">
+                  <h3 className="font-display text-base font-bold tracking-[-0.02em] text-[#0A1F44]">
                     {item.title}
                   </h3>
-                  <p className="mt-2 text-[14px] leading-relaxed text-[#667085]">
-                    {item.text}
-                  </p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[#667085]">{item.text}</p>
                 </div>
-              ))}
-            </div>
-          </Reveal>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* 6. Conversion */}
-      <section id="access" className="section-pad border-t border-[rgba(16,24,40,0.06)]">
+      <section id="access" className="section-pad border-t border-[rgba(16,24,40,0.08)] bg-white">
         <div className="container-page">
           <Reveal>
-            <div className="soft-card-solid relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 lg:px-14">
-              <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[#e6f7f5] blur-2xl" />
-              <div className="absolute -bottom-20 left-10 h-48 w-48 rounded-full bg-cyan-100/60 blur-2xl" />
-
-              <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-                <div className="max-w-2xl">
-                  <div className="mb-4 flex items-center gap-3">
-                    <BrandLogo variant="horizontal" size="sm" href={null} />
-                  </div>
-                  <p className="eyebrow">Ready to Collaborate</p>
-                  <h2 className="font-display mt-2 text-3xl font-bold tracking-[-0.04em] text-[#101828] sm:text-4xl">
-                    Enter the secure hub — or request authorized access
-                    <span className="text-[#0d9488]">.</span>
-                  </h2>
-                  <p className="mt-3 text-[15px] leading-relaxed text-[#667085]">
-                    Existing members can sign in immediately. New collaborators should
-                    request access so an administrator can assign the right panels.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+            <div className="soft-card-solid overflow-hidden lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="p-7 sm:p-10">
+                <BrandLogo variant="horizontal" size="sm" href={null} />
+                <p className="eyebrow mt-6">Ready to Collaborate</p>
+                <h2 className="font-display mt-2 text-3xl font-bold tracking-[-0.04em] text-[#0A1F44] sm:text-4xl">
+                  Enter the secure hub — or request authorized access.
+                </h2>
+                <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#667085]">
+                  Existing members can sign in immediately. New collaborators should
+                  request access so an administrator can assign the right panels.
+                </p>
+                <div className="mt-7 flex flex-wrap gap-3">
                   <Link
                     href="/login"
-                    className="btn-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold"
+                    className="btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold"
                   >
                     Member Login
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a
                     href="mailto:admin@shawinnovations.com?subject=Access%20Request%20-%20Shaw%20Innovations"
-                    className="btn-secondary inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold"
+                    className="btn-secondary inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold"
                   >
                     Request Access
                   </a>
                 </div>
               </div>
+              <MediaFrame
+                src="/imagery/engineering-cta.jpg"
+                alt="Engineering and prototype collaboration for medical devices"
+                className="media-cta"
+                sizes="(max-width: 1024px) 100vw, 45vw"
+                objectPosition="center"
+              />
             </div>
           </Reveal>
         </div>

@@ -26,6 +26,8 @@
 # misc
 .DS_Store
 *.pem
+.tmp-*.png
+.tmp-*.jpg
 
 # debug
 npm-debug.log*
@@ -57,3 +59,6 @@ next-env.d.ts
 /prisma/dev.db-journal
 *.db
 *.db-journal
+
+.vercel
+.env*

@@ -6,10 +6,10 @@ export async function SiteHeader() {
   const session = await auth();
 
   return (
-    <header className="sticky top-0 z-50 pt-4">
+    <header className="sticky top-0 z-50 border-b border-[rgba(16,24,40,0.06)] bg-white/92 backdrop-blur-md">
       <div className="container-page">
-        <div className="site-header-bar flex h-[4.35rem] items-center justify-between gap-6 px-5 sm:px-7">
-          <div className="header-logo-glow flex min-w-0 items-center">
+        <div className="flex h-16 items-center justify-between gap-6">
+          <div className="flex min-w-0 items-center">
             <span className="sm:hidden">
               <BrandLogo variant="mark" size="md" priority />
             </span>
@@ -37,12 +37,12 @@ export async function SiteHeader() {
                 {session.user.role === "ADMIN" && (
                   <Link
                     href="/admin"
-                    className="hidden rounded-full px-3 py-2 text-sm font-semibold text-[#00a892] hover:bg-[#e8fffa] md:inline-flex"
+                    className="hidden px-3 py-2 text-sm font-semibold text-[#0f766e] hover:text-[#0a1f44] md:inline-flex"
                   >
                     Admin
                   </Link>
                 )}
-                <Link href="/dashboard" className="dashboard-pill">
+                <Link href="/dashboard" className="btn-primary px-4 py-2 text-sm font-semibold">
                   Dashboard
                 </Link>
               </>
@@ -54,7 +54,7 @@ export async function SiteHeader() {
                 >
                   Request Access
                 </Link>
-                <Link href="/login" className="dashboard-pill">
+                <Link href="/login" className="btn-primary px-4 py-2 text-sm font-semibold">
                   Member Login
                 </Link>
               </>

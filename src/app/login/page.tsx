@@ -19,12 +19,9 @@ export default async function LoginPage({
     <div className="premium-shell">
       <div className="container-page flex min-h-[75vh] items-center py-14">
         <div className="grid w-full gap-6 lg:grid-cols-2">
-          <div className="hero-orb relative overflow-hidden rounded-[2rem] p-8 sm:p-10">
-            <div className="absolute -right-10 top-10 h-40 w-40 rounded-full bg-teal-200/40 blur-3xl" />
-            <div className="inline-flex rounded-2xl bg-white/80 p-4 ring-1 ring-white/80">
-              <BrandLogo variant="horizontal" size="md" href="/" priority />
-            </div>
-            <p className="eyebrow mt-8">Secure Access</p>
+          <div className="soft-card-solid p-8 sm:p-10">
+            <BrandLogo variant="horizontal" size="md" href="/" />
+            <p className="eyebrow mt-6">Secure Access</p>
             <h1 className="font-display mt-3 text-4xl font-extrabold tracking-[-0.04em] text-[#101828] sm:text-5xl">
               Member Login
               <span className="text-[#0d9488]">.</span>
@@ -33,7 +30,7 @@ export default async function LoginPage({
               Sign in to access your assigned collaboration panels. Access is
               permission-based and can be revoked by administrators at any time.
             </p>
-            <div className="soft-card mt-8 rounded-2xl p-4 text-sm">
+            <div className="soft-card mt-8 p-4 text-sm">
               <p className="font-display font-bold tracking-[-0.02em] text-[#101828]">
                 Demo accounts
               </p>
@@ -46,7 +43,7 @@ export default async function LoginPage({
             </div>
           </div>
 
-          <div className="soft-card-solid rounded-[2rem] p-8 sm:p-10">
+          <div className="soft-card-solid p-8 sm:p-10">
             <div className="mb-8 lg:hidden">
               <BrandLogo variant="horizontal" size="sm" href="/" />
             </div>
