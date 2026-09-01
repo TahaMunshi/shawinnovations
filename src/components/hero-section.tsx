@@ -3,106 +3,86 @@ import {
   ArrowUpRight,
   Cog,
   HeartPulse,
-  Lock,
+  Mail,
   Scale,
+  ShieldCheck,
   Stethoscope,
-  type LucideIcon,
 } from "lucide-react";
-import { MediaFrame } from "@/components/media-frame";
 import { Reveal } from "@/components/reveal";
 
-const hubItems: {
-  label: string;
-  icon: LucideIcon;
-}[] = [
-  { label: "Sonography Advisors", icon: Stethoscope },
-  { label: "Engineering Collaborative", icon: Cog },
-  { label: "Clinical Partners", icon: HeartPulse },
+const hubs = [
+  { label: "Sonography", icon: Stethoscope },
+  { label: "Engineering", icon: Cog },
+  { label: "Clinical", icon: HeartPulse },
   { label: "IP / Legal", icon: Scale },
 ];
 
 export function HeroSection() {
   return (
-    <section className="hero-section">
-      <div className="container-page hero-shell">
-        <Reveal>
-          <div className="hero-left">
-            <div className="hero-eyebrow">
-              MEDICAL DEVICE COLLABORATION PLATFORM
+    <section className="hero-diagonal">
+      <div className="hero-diagonal-frame">
+        <div className="hero-diagonal-visual">
+          <div className="hero-diagonal-pattern" aria-hidden="true" />
+          <div className="hero-diagonal-glow" aria-hidden="true" />
+
+          <div className="hero-diagonal-left-content">
+            <div className="hero-diagonal-icons">
+              {hubs.map((item) => (
+                <div key={item.label} className="hero-diagonal-icon-card">
+                  <item.icon aria-hidden="true" />
+                  <span>{item.label}</span>
+                </div>
+              ))}
             </div>
 
-            <h1 className="hero-title font-display">
+            <div className="hero-diagonal-meta">
+              <p className="hero-diagonal-meta-title">Shaw Innovations</p>
+              <p className="hero-diagonal-meta-line">Medical Device Collaboration</p>
+              <a
+                href="mailto:admin@shawinnovations.com"
+                className="hero-diagonal-meta-link"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                admin@shawinnovations.com
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-diagonal-copy">
+          <Reveal>
+            <p className="hero-diagonal-eyebrow">Medical Device Platform</p>
+            <h1 className="hero-diagonal-title font-display">
               Advancing
               <br />
               Healthcare
               <br />
-              <span className="hero-title-accent">Together.</span>
+              <span>Together.</span>
             </h1>
-
-            <p className="hero-subhead">
+            <p className="hero-diagonal-sub">
               A secure hub where clinicians, engineers, and advisors collaborate on
               medical device breakthroughs — with access limited to exactly what each
               member needs.
             </p>
 
-            <div className="hero-actions">
-              <Link href="/#access" className="hero-cta-primary">
+            <div className="hero-diagonal-actions">
+              <Link href="/#access" className="hero-diagonal-cta">
                 Get Secure Access
-                <ArrowUpRight className="h-4 w-4 stroke-[2.4]" />
+                <ArrowUpRight className="h-4 w-4" />
               </Link>
-              <Link href="/#ecosystem" className="hero-cta-secondary">
+              <Link href="/#ecosystem" className="hero-diagonal-link">
                 Explore Ecosystem
               </Link>
             </div>
 
-            <div className="hero-tag-bar">
-              {["Sonographers", "Engineering", "Clinical", "IP / Legal"].map(
-                (label) => (
-                  <span key={label} className="hero-tag">
-                    {label}
-                  </span>
-                ),
-              )}
+            <div className="hero-diagonal-trust">
+              <ShieldCheck className="h-4 w-4" />
+              Role-based access · Admin controlled · Protected panels
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
 
-        <Reveal delayMs={100} className="hero-right w-full">
-          <div className="hero-media-stack">
-            <MediaFrame
-              src="/imagery/sonography.jpg"
-              alt="Clinical ultrasound imaging for sonographer collaboration"
-              className="hero-media"
-              priority
-              sizes="(max-width: 1024px) 100vw, 48vw"
-              objectPosition="center 30%"
-            />
-
-            {/* Soft vignette so the in-image UI reads as part of the photo */}
-            <div className="hero-media-shade" aria-hidden="true" />
-
-            <div className="hero-inimage-ui">
-              <div className="hero-inimage-top">
-                <span className="hero-inimage-kicker">Secure hub</span>
-                <span className="hero-inimage-lock">
-                  <Lock className="h-3 w-3" />
-                  Protected
-                </span>
-              </div>
-
-              <div className="hero-inimage-grid">
-                {hubItems.map((item) => (
-                  <div key={item.label} className="hero-inimage-chip">
-                    <span className="hero-inimage-icon">
-                      <item.icon className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="hero-inimage-label">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Reveal>
+        <div className="hero-diagonal-slash" aria-hidden="true" />
       </div>
     </section>
   );

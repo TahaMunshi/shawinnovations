@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { HeroSection } from "@/components/hero-section";
-import { MediaFrame } from "@/components/media-frame";
 import { Reveal } from "@/components/reveal";
 import { SectionIcon } from "@/components/section-icon";
 
@@ -252,40 +251,31 @@ export default function HomePage() {
       <section id="access" className="section-pad border-t border-[rgba(16,24,40,0.08)] bg-white">
         <div className="container-page">
           <Reveal>
-            <div className="soft-card-solid overflow-hidden lg:grid lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="p-7 sm:p-10">
-                <BrandLogo variant="horizontal" size="sm" href={null} />
-                <p className="eyebrow mt-6">Ready to Collaborate</p>
-                <h2 className="font-display mt-2 text-3xl font-bold tracking-[-0.04em] text-[#0A1F44] sm:text-4xl">
-                  Enter the secure hub — or request authorized access.
-                </h2>
-                <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#667085]">
-                  Existing members can sign in immediately. New collaborators should
-                  request access so an administrator can assign the right panels.
-                </p>
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <Link
-                    href="/login"
-                    className="btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold"
-                  >
-                    Member Login
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <a
-                    href="mailto:admin@shawinnovations.com?subject=Access%20Request%20-%20Shaw%20Innovations"
-                    className="btn-secondary inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold"
-                  >
-                    Request Access
-                  </a>
-                </div>
+            <div className="soft-card-solid p-7 sm:p-10">
+              <BrandLogo variant="horizontal" size="sm" href={null} />
+              <p className="eyebrow mt-6">Ready to Collaborate</p>
+              <h2 className="font-display mt-2 max-w-2xl text-3xl font-bold tracking-[-0.04em] text-[#0A1F44] sm:text-4xl">
+                Enter the secure hub — or request authorized access.
+              </h2>
+              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#667085]">
+                Existing members can sign in immediately. New collaborators should
+                request access so an administrator can assign the right panels.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link
+                  href="/login"
+                  className="btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold"
+                >
+                  Member Login
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <a
+                  href="mailto:admin@shawinnovations.com?subject=Access%20Request%20-%20Shaw%20Innovations"
+                  className="btn-secondary inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold"
+                >
+                  Request Access
+                </a>
               </div>
-              <MediaFrame
-                src="/imagery/engineering-cta.jpg"
-                alt="Engineering and prototype collaboration for medical devices"
-                className="media-cta"
-                sizes="(max-width: 1024px) 100vw, 45vw"
-                objectPosition="center"
-              />
             </div>
           </Reveal>
         </div>
