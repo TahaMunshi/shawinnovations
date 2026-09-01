@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.tools
+*.db
+node_modules
+.next
+Gemini_Generated_Image_*.jpg
+public/design-reference.jpg
+docs
