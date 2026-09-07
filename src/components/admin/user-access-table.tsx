@@ -1,12 +1,7 @@
 import Link from "next/link";
-import type { Section, User, UserPermission } from "@prisma/client";
-import { setUserActiveAction } from "@/app/admin/actions";
+import type { StagingUser } from "@/lib/staging-data";
 
-type UserWithPermissions = User & {
-  permissions: (UserPermission & { section: Section })[];
-};
-
-export function UserAccessTable({ users }: { users: UserWithPermissions[] }) {
+export function UserAccessTable({ users }: { users: StagingUser[] }) {
   return (
     <section className="rounded-2xl border border-teal-100 bg-white p-5">
       <h2 className="mb-4 text-lg font-bold text-slate-900">Authorized Users</h2>
@@ -44,47 +39,28 @@ export function UserAccessTable({ users }: { users: UserWithPermissions[] }) {
                     <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] text-slate-700">
                       All sections
                     </span>
-                  ) : user.permissions.length === 0 ? (
+                  ) : user.sections.length === 0 ? (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-800">
                       No section access
                     </span>
                   ) : (
-                    user.permissions.map((permission) => (
+                    user.sections.map((section) => (
                       <span
-                        key={permission.id}
+                        key={section}
                         className="rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] text-cyan-900"
                       >
-                        {permission.section.name}
+                        {section}
                       </span>
                     ))
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Link
-                  href={`/admin/users/${user.id}`}
-                  className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-200"
-                >
-                  Manage
-                </Link>
-                <form
-                  action={async () => {
-                    "use server";
-                    await setUserActiveAction(user.id, !user.isActive);
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                      user.isActive
-                        ? "bg-red-50 text-red-700 ring-1 ring-red-200"
-                        : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                    }`}
-                  >
-                    {user.isActive ? "Revoke access" : "Restore access"}
-                  </button>
-                </form>
-              </div>
+              <Link
+                href={`/admin/users/${user.id}`}
+                className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-200"
+              >
+                View
+              </Link>
             </div>
           </div>
         ))}

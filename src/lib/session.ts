@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { Role } from "@prisma/client";
 import { GATE_COOKIE } from "@/lib/gate";
+import type { StagingRole } from "@/lib/staging-data";
 
 export { GATE_COOKIE, safeCallbackPath } from "@/lib/gate";
 
@@ -10,7 +10,7 @@ export type HubSession = {
     id: string;
     email: string;
     name: string;
-    role: Role;
+    role: StagingRole;
     isActive: boolean;
   };
 };
@@ -23,10 +23,10 @@ export function sessionFromName(name: string): HubSession {
 
   return {
     user: {
-      id: "000000000000000000000001",
+      id: "guest-1",
       email,
       name: trimmed,
-      role: "ADMIN" as Role,
+      role: "ADMIN",
       isActive: true,
     },
   };

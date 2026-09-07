@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.AUTH_URL || "http://localhost:3000"),
+  metadataBase: new URL("https://shawinnovations-umber.vercel.app"),
   title: "Shaw Innovations | Medical Device Collaboration",
   description:
     "A secure platform for clinicians, engineers, and advisors advancing innovative medical device breakthroughs.",

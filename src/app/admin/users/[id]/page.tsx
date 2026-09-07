@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  grantPermissionAction,
-  revokePermissionAction,
-  setUserActiveAction,
-} from "@/app/admin/actions";
-import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
+import { SECTION_CATALOG } from "@/lib/sections-catalog";
+import { getStagingUser } from "@/lib/staging-data";
 
 export default async function AdminUserPage({
   params,
@@ -15,27 +11,11 @@ export default async function AdminUserPage({
 }) {
   await requireAdmin();
   const { id } = await params;
-
-  const [user, sections] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id },
-      include: {
-        permissions: {
-          include: { section: true },
-          orderBy: { section: { sortOrder: "asc" } },
-        },
-      },
-    }),
-    prisma.section.findMany({ orderBy: { sortOrder: "asc" } }),
-  ]);
+  const user = getStagingUser(id);
 
   if (!user) {
     notFound();
   }
-
-  const activeSectionIds = new Set(
-    user.permissions.filter((p) => p.isActive && !p.revokedAt).map((p) => p.sectionId),
-  );
 
   return (
     <div className="premium-shell container-page max-w-4xl py-12">
@@ -60,23 +40,6 @@ export default async function AdminUserPage({
               </Badge>
             </div>
           </div>
-          <form
-            action={async () => {
-              "use server";
-              await setUserActiveAction(user.id, !user.isActive);
-            }}
-          >
-            <button
-              type="submit"
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                user.isActive
-                  ? "bg-red-50 text-red-700 ring-1 ring-red-200"
-                  : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-              }`}
-            >
-              {user.isActive ? "Revoke all access" : "Restore account"}
-            </button>
-          </form>
         </div>
       </div>
 
@@ -85,7 +48,7 @@ export default async function AdminUserPage({
         <p className="mb-4 text-sm text-slate-600">
           {user.role === "ADMIN"
             ? "Administrators automatically receive access to every protected section."
-            : "Grant or revoke individual panel access for this member."}
+            : "Staging preview of panel access for this member."}
         </p>
 
         {user.role === "ADMIN" ? (
@@ -94,11 +57,11 @@ export default async function AdminUserPage({
           </div>
         ) : (
           <div className="space-y-2">
-            {sections.map((section) => {
-              const hasAccess = activeSectionIds.has(section.id);
+            {SECTION_CATALOG.map((section) => {
+              const hasAccess = user.sections.includes(section.name);
               return (
                 <div
-                  key={section.id}
+                  key={section.slug}
                   className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
@@ -108,27 +71,15 @@ export default async function AdminUserPage({
                       {section.isBlank ? " · Reserved blank panel" : ""}
                     </p>
                   </div>
-                  <form
-                    action={async () => {
-                      "use server";
-                      if (hasAccess) {
-                        await revokePermissionAction(user.id, section.id);
-                      } else {
-                        await grantPermissionAction(user.id, section.id);
-                      }
-                    }}
+                  <span
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      hasAccess
+                        ? "bg-teal-600 text-white"
+                        : "bg-white text-slate-500 ring-1 ring-slate-200"
+                    }`}
                   >
-                    <button
-                      type="submit"
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        hasAccess
-                          ? "bg-red-50 text-red-700 ring-1 ring-red-200"
-                          : "bg-teal-600 text-white"
-                      }`}
-                    >
-                      {hasAccess ? "Revoke" : "Grant access"}
-                    </button>
-                  </form>
+                    {hasAccess ? "Access granted" : "No access"}
+                  </span>
                 </div>
               );
             })}

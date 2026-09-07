@@ -1,35 +1,16 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { CreateUserForm } from "@/components/admin/create-user-form";
 import { UserAccessTable } from "@/components/admin/user-access-table";
+import { SECTION_CATALOG } from "@/lib/sections-catalog";
+import { STAGING_MEETINGS, STAGING_USERS } from "@/lib/staging-data";
 
 export default async function AdminPage() {
   await requireAdmin();
-
-  const [users, sections, meetings, logs] = await Promise.all([
-    prisma.user.findMany({
-      include: {
-        permissions: {
-          where: { isActive: true, revokedAt: null },
-          include: { section: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.section.findMany({ orderBy: { sortOrder: "asc" } }),
-    prisma.meeting.findMany({
-      include: { section: true, access: true },
-      orderBy: { scheduledAt: "desc" },
-      take: 8,
-    }),
-    prisma.auditLog.findMany({
-      include: { actor: true },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }),
-  ]);
+  const sections = SECTION_CATALOG;
+  const users = STAGING_USERS;
+  const meetings = STAGING_MEETINGS;
 
   return (
     <div className="premium-shell container-page py-12">
@@ -41,7 +22,7 @@ export default async function AdminPage() {
             <span className="text-[#0d9488]">.</span>
           </h1>
           <p className="mt-2 text-slate-600">
-            View users, assign section permissions, revoke access, and manage Zoom meetings.
+            Staging preview of users, panel access, and meeting management.
           </p>
         </div>
         <div className="flex gap-2">
@@ -88,7 +69,7 @@ export default async function AdminPage() {
               >
                 <p className="font-medium text-slate-900">{meeting.title}</p>
                 <p className="text-sm text-slate-600">
-                  {format(meeting.scheduledAt, "PPpp")} · {meeting.access.length} invitees
+                  {format(new Date(meeting.scheduledAt), "PPpp")} · {meeting.invitees.length} invitees
                 </p>
               </div>
             ))}
@@ -97,21 +78,8 @@ export default async function AdminPage() {
 
         <section className="rounded-2xl border border-teal-100 bg-white p-5">
           <h2 className="mb-4 text-lg font-bold text-slate-900">Security Audit Trail</h2>
-          <div className="space-y-3">
-            {logs.map((log) => (
-              <div
-                key={log.id}
-                className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-              >
-                <p className="text-sm font-medium text-slate-900">{log.action}</p>
-                <p className="text-xs text-slate-500">
-                  {log.actor?.name || "System"} · {format(log.createdAt, "PPp")}
-                </p>
-                {log.details && (
-                  <p className="mt-1 text-sm text-slate-600">{log.details}</p>
-                )}
-              </div>
-            ))}
+          <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            Staging preview — no live audit log.
           </div>
         </section>
       </div>
