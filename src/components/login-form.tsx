@@ -12,11 +12,11 @@ export function LoginForm({
   error?: string;
 }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(
-    error ? "Invalid credentials or inactive account." : null,
+    error ? "Unable to sign in. Please try again." : null,
   );
 
   async function onSubmit(event: React.FormEvent) {
@@ -25,7 +25,7 @@ export function LoginForm({
     setFormError(null);
 
     const result = await signIn("credentials", {
-      email,
+      username,
       password,
       redirect: false,
       callbackUrl: callbackUrl || "/dashboard",
@@ -34,7 +34,7 @@ export function LoginForm({
     setPending(false);
 
     if (result?.error) {
-      setFormError("Invalid credentials or your access has been revoked.");
+      setFormError("Unable to sign in. Please try again.");
       return;
     }
 
@@ -50,7 +50,7 @@ export function LoginForm({
           <span className="text-[#0d9488]">.</span>
         </h2>
         <p className="mt-2 text-[15px] text-[#667085]">
-          Use your authorized Shaw Innovations credentials.
+          Enter any username and password to continue.
         </p>
       </div>
 
@@ -61,14 +61,15 @@ export function LoginForm({
       )}
 
       <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-[#344054]">Email</span>
+        <span className="text-sm font-semibold text-[#344054]">Username</span>
         <input
-          type="email"
+          type="text"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           className="input-premium"
-          placeholder="you@organization.com"
+          placeholder="Your name"
+          autoComplete="username"
         />
       </label>
 
@@ -77,11 +78,11 @@ export function LoginForm({
         <input
           type="password"
           required
-          minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="input-premium"
           placeholder="••••••••"
+          autoComplete="current-password"
         />
       </label>
 
@@ -90,7 +91,7 @@ export function LoginForm({
         disabled={pending}
         className="btn-primary w-full px-4 py-3 text-sm font-semibold disabled:opacity-60"
       >
-        {pending ? "Signing in..." : "Sign in securely"}
+        {pending ? "Signing in..." : "Sign in"}
       </button>
     </form>
   );

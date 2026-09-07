@@ -21,26 +21,15 @@ export default async function LoginPage({
         <div className="grid w-full gap-6 lg:grid-cols-2">
           <div className="soft-card-solid p-8 sm:p-10">
             <BrandLogo variant="horizontal" size="md" href="/" />
-            <p className="eyebrow mt-6">Secure Access</p>
+            <p className="eyebrow mt-6">Member Access</p>
             <h1 className="font-display mt-3 text-4xl font-extrabold tracking-[-0.04em] text-[#101828] sm:text-5xl">
               Member Login
               <span className="text-[#0d9488]">.</span>
             </h1>
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#667085]">
-              Sign in to access your assigned collaboration panels. Access is
-              permission-based and can be revoked by administrators at any time.
+              Sign in to enter the collaboration hub. Any username and password
+              will let you through.
             </p>
-            <div className="soft-card mt-8 p-4 text-sm">
-              <p className="font-display font-bold tracking-[-0.02em] text-[#101828]">
-                Demo accounts
-              </p>
-              <ul className="mt-2 space-y-1.5 text-[#475467]">
-                <li>Admin: admin@shawinnovations.com</li>
-                <li>Advisor: advisor@shawinnovations.com</li>
-                <li>Engineer: engineer@shawinnovations.com</li>
-                <li>Password: ShawDemo2026!</li>
-              </ul>
-            </div>
           </div>
 
           <div className="soft-card-solid p-8 sm:p-10">
@@ -49,13 +38,7 @@ export default async function LoginPage({
             </div>
             <LoginForm callbackUrl={params.callbackUrl} error={params.error} />
             <p className="mt-6 text-center text-sm text-[#667085]">
-              Need access?{" "}
-              <a
-                href="mailto:admin@shawinnovations.com?subject=Access%20Request%20-%20Shaw%20Innovations"
-                className="font-semibold text-[#0f766e] hover:underline"
-              >
-                Request authorization
-              </a>
+              This login is a front-end gate only — no account is verified.
             </p>
           </div>
         </div>
