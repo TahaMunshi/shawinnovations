@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { format } from "date-fns";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { SectionIcon } from "@/components/section-icon";
-import { prisma } from "@/lib/prisma";
-import { userCanAccessSection } from "@/lib/permissions";
+import { getCatalogSection } from "@/lib/sections-catalog";
 import { requireSession } from "@/lib/session";
 
 export default async function SectionPage({
@@ -13,31 +11,9 @@ export default async function SectionPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const session = await requireSession();
+  await requireSession();
 
-  const allowed = await userCanAccessSection(
-    session.user.id,
-    session.user.role,
-    slug,
-  );
-
-  if (!allowed) {
-    redirect("/dashboard");
-  }
-
-  const section = await prisma.section.findUnique({
-    where: { slug },
-    include: {
-      resources: { orderBy: { createdAt: "desc" } },
-      milestones: { orderBy: { dueDate: "asc" } },
-      meetings: {
-        orderBy: { scheduledAt: "desc" },
-        take: 5,
-        include: { minutes: true },
-      },
-    },
-  });
-
+  const section = getCatalogSection(slug);
   if (!section) {
     notFound();
   }
@@ -75,98 +51,18 @@ export default async function SectionPage({
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-teal-100 bg-white p-5">
           <h2 className="mb-4 text-lg font-bold text-slate-900">Resources</h2>
-          <div className="space-y-3">
-            {section.resources.length === 0 && (
-              <p className="text-sm text-slate-500">No resources published yet.</p>
-            )}
-            {section.resources.map((resource) => (
-              <div
-                key={resource.id}
-                className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-              >
-                <p className="font-medium text-slate-900">{resource.title}</p>
-                <p className="text-xs uppercase tracking-wide text-teal-700">
-                  {resource.type}
-                </p>
-                {resource.description && (
-                  <p className="mt-1 text-sm text-slate-600">{resource.description}</p>
-                )}
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-slate-500">No resources published yet.</p>
         </section>
 
         <section className="rounded-2xl border border-teal-100 bg-white p-5">
           <h2 className="mb-4 text-lg font-bold text-slate-900">Milestones</h2>
-          <div className="space-y-3">
-            {section.milestones.length === 0 && (
-              <p className="text-sm text-slate-500">No milestones yet.</p>
-            )}
-            {section.milestones.map((milestone) => (
-              <div
-                key={milestone.id}
-                className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-slate-900">{milestone.title}</p>
-                  <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-teal-800">
-                    {milestone.status}
-                  </span>
-                </div>
-                {milestone.description && (
-                  <p className="mt-1 text-sm text-slate-600">{milestone.description}</p>
-                )}
-                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                  {milestone.dueDate && <span>Due {format(milestone.dueDate, "PP")}</span>}
-                  {milestone.cadRef && <span>CAD: {milestone.cadRef}</span>}
-                  {milestone.prototypeRef && (
-                    <span>Prototype: {milestone.prototypeRef}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-slate-500">No milestones yet.</p>
         </section>
       </div>
 
       <section className="mt-6 rounded-2xl border border-teal-100 bg-white p-5">
         <h2 className="mb-4 text-lg font-bold text-slate-900">Panel Meetings & Minutes</h2>
-        <div className="space-y-3">
-          {section.meetings.length === 0 && (
-            <p className="text-sm text-slate-500">No meetings scheduled for this panel.</p>
-          )}
-          {section.meetings.map((meeting) => (
-            <div
-              key={meeting.id}
-              className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-medium text-slate-900">{meeting.title}</p>
-                  <p className="text-sm text-slate-600">
-                    {format(meeting.scheduledAt, "PPpp")}
-                  </p>
-                </div>
-                {meeting.zoomJoinUrl && (
-                  <a
-                    href={meeting.zoomJoinUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-semibold text-teal-700"
-                  >
-                    Join Zoom
-                  </a>
-                )}
-              </div>
-              {meeting.minutes && (
-                <p className="mt-2 text-sm text-slate-600">
-                  <span className="font-medium text-slate-800">Minutes: </span>
-                  {meeting.minutes.summary || meeting.minutes.content}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+        <p className="text-sm text-slate-500">No meetings scheduled for this panel.</p>
       </section>
     </div>
   );

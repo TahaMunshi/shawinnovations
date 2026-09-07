@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { safeCallbackPath } from "@/lib/gate";
+import { safeCallbackPath, writeHubCookie } from "@/lib/gate";
 
 export function LoginForm({
   callbackUrl,
@@ -14,29 +14,19 @@ export function LoginForm({
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  async function onSubmit(event: React.FormEvent) {
+  function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    const name = username.trim();
+    const secret = password;
+    if (!name || !secret) {
+      setFormError("Enter a username and password.");
+      return;
+    }
+
     setPending(true);
     setFormError(null);
-
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        setFormError("Unable to sign in. Please try again.");
-        setPending(false);
-        return;
-      }
-
-      window.location.assign(safeCallbackPath(callbackUrl));
-    } catch {
-      setFormError("Unable to sign in. Please try again.");
-      setPending(false);
-    }
+    writeHubCookie(name);
+    window.location.assign(safeCallbackPath(callbackUrl));
   }
 
   return (

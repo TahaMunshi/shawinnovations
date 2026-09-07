@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { GATE_COOKIE } from "@/lib/gate";
 
+export const runtime = "edge";
+
 export async function POST(request: Request) {
   let username = "";
   let password = "";

@@ -1,51 +1,13 @@
 import Link from "next/link";
-import { format } from "date-fns";
 import { Video } from "lucide-react";
 import { SectionIcon } from "@/components/section-icon";
 import { SignOutButton } from "@/components/sign-out-button";
-import { prisma } from "@/lib/prisma";
-import { getUserAccessibleSections } from "@/lib/permissions";
+import { SECTION_CATALOG } from "@/lib/sections-catalog";
 import { requireSession } from "@/lib/session";
-
-type DashboardMeeting = {
-  id: string;
-  title: string;
-  scheduledAt: Date;
-  zoomJoinUrl: string | null;
-  section: { name: string } | null;
-};
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  let sections: Awaited<ReturnType<typeof getUserAccessibleSections>> = [];
-  let meetings: DashboardMeeting[] = [];
-
-  try {
-    sections = await getUserAccessibleSections(
-      session.user.id,
-      session.user.role,
-    );
-    meetings = await prisma.meeting.findMany({
-      where:
-        session.user.role === "ADMIN"
-          ? { scheduledAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } }
-          : {
-              scheduledAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
-              access: { some: { userId: session.user.id } },
-            },
-      select: {
-        id: true,
-        title: true,
-        scheduledAt: true,
-        zoomJoinUrl: true,
-        section: { select: { name: true } },
-      },
-      orderBy: { scheduledAt: "asc" },
-      take: 5,
-    });
-  } catch (error) {
-    console.error("Dashboard data failed", error);
-  }
+  const sections = SECTION_CATALOG;
 
   return (
     <div className="premium-shell container-page py-12">
@@ -91,7 +53,7 @@ export default async function DashboardPage() {
         <div className="soft-card-solid rounded-[1.5rem] p-5">
           <p className="text-sm text-[#667085]">Upcoming meetings</p>
           <p className="font-display mt-2 text-4xl font-bold tracking-[-0.04em] text-[#0d9488]">
-            {meetings.length}
+            0
           </p>
         </div>
       </div>
@@ -100,35 +62,28 @@ export default async function DashboardPage() {
         <h2 className="font-display mb-4 text-2xl font-bold tracking-[-0.03em] text-[#101828]">
           Your Panels
         </h2>
-        {sections.length === 0 ? (
-          <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
-            No panel access is currently assigned. Contact an administrator if you
-            believe this is an error.
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sections.map((section) => (
-              <Link
-                key={section.id}
-                href={`/sections/${section.slug}`}
-                className="soft-card-solid group rounded-[1.6rem] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(16,24,40,0.08)]"
-              >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5f7fa] text-[#0f766e] transition group-hover:bg-[#e6f7f5]">
-                  <SectionIcon name={section.icon} />
-                </div>
-                <h3 className="font-display text-lg font-bold tracking-[-0.03em] text-[#101828]">
-                  {section.name}
-                </h3>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0f766e]">
-                  {section.category}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-[#667085]">
-                  {section.description}
-                </p>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sections.map((section) => (
+            <Link
+              key={section.slug}
+              href={`/sections/${section.slug}`}
+              className="soft-card-solid group rounded-[1.6rem] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(16,24,40,0.08)]"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5f7fa] text-[#0f766e] transition group-hover:bg-[#e6f7f5]">
+                <SectionIcon name={section.icon} />
+              </div>
+              <h3 className="font-display text-lg font-bold tracking-[-0.03em] text-[#101828]">
+                {section.name}
+              </h3>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0f766e]">
+                {section.category}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[#667085]">
+                {section.description}
+              </p>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section>
@@ -136,39 +91,9 @@ export default async function DashboardPage() {
           <Video className="h-5 w-5 text-[#0f766e]" />
           Meetings Available to You
         </h2>
-        <div className="space-y-3">
-          {meetings.length === 0 && (
-            <p className="soft-card-solid rounded-[1.5rem] p-5 text-sm text-[#667085]">
-              No upcoming meetings assigned.
-            </p>
-          )}
-          {meetings.map((meeting) => (
-            <div
-              key={meeting.id}
-              className="soft-card-solid flex flex-col gap-3 rounded-[1.5rem] p-5 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-display font-bold tracking-[-0.02em] text-[#101828]">
-                  {meeting.title}
-                </p>
-                <p className="text-sm text-[#667085]">
-                  {format(meeting.scheduledAt, "PPpp")}
-                  {meeting.section ? ` · ${meeting.section.name}` : ""}
-                </p>
-              </div>
-              {meeting.zoomJoinUrl && (
-                <a
-                  href={meeting.zoomJoinUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-primary rounded-full px-4 py-2 text-center text-sm font-semibold"
-                >
-                  Join Zoom
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
+        <p className="soft-card-solid rounded-[1.5rem] p-5 text-sm text-[#667085]">
+          No upcoming meetings assigned.
+        </p>
       </section>
     </div>
   );
