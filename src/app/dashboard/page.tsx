@@ -9,23 +9,29 @@ import { requireSession } from "@/lib/session";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const sections = await getUserAccessibleSections(
-    session.user.id,
-    session.user.role,
-  );
+  let sections: Awaited<ReturnType<typeof getUserAccessibleSections>> = [];
+  let meetings: Awaited<ReturnType<typeof prisma.meeting.findMany>> = [];
 
-  const meetings = await prisma.meeting.findMany({
-    where:
-      session.user.role === "ADMIN"
-        ? { scheduledAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } }
-        : {
-            scheduledAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
-            access: { some: { userId: session.user.id } },
-          },
-    include: { section: true },
-    orderBy: { scheduledAt: "asc" },
-    take: 5,
-  });
+  try {
+    sections = await getUserAccessibleSections(
+      session.user.id,
+      session.user.role,
+    );
+    meetings = await prisma.meeting.findMany({
+      where:
+        session.user.role === "ADMIN"
+          ? { scheduledAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) } }
+          : {
+              scheduledAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
+              access: { some: { userId: session.user.id } },
+            },
+      include: { section: true },
+      orderBy: { scheduledAt: "asc" },
+      take: 5,
+    });
+  } catch (error) {
+    console.error("Dashboard data failed", error);
+  }
 
   return (
     <div className="premium-shell container-page py-12">

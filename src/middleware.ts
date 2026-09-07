@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import type { NextRequest } from "next/server";
 
+const GATE_COOKIE = "shaw_hub_access";
 const protectedPrefixes = ["/dashboard", "/admin", "/sections"];
 
-export default auth((request) => {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isProtected = protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -13,20 +14,14 @@ export default auth((request) => {
     return NextResponse.next();
   }
 
-  const user = request.auth?.user;
-
-  if (!user?.id || user.isActive === false) {
-    const loginUrl = new URL("/login", request.nextUrl);
+  if (!request.cookies.get(GATE_COOKIE)?.value) {
+    const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (pathname.startsWith("/admin") && user.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/dashboard", request.nextUrl));
-  }
-
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

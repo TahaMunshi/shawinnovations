@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { safeCallbackPath } from "@/lib/gate";
 
 export function LoginForm({
   callbackUrl,
-  error,
 }: {
   callbackUrl?: string;
   error?: string;
@@ -13,35 +12,28 @@ export function LoginForm({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
-  const [formError, setFormError] = useState<string | null>(
-    error ? "Unable to sign in. Please try again." : null,
-  );
+  const [formError, setFormError] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
     setFormError(null);
 
-    const nextPath = callbackUrl || "/dashboard";
-
     try {
-      const result = await signIn("credentials", {
-        username,
-        password,
-        redirect: false,
-        callbackUrl: nextPath,
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
       });
 
-      if (!result || result.error) {
-        console.error("Sign-in failed", result);
+      if (!response.ok) {
         setFormError("Unable to sign in. Please try again.");
         setPending(false);
         return;
       }
 
-      window.location.assign(nextPath);
-    } catch (signInError) {
-      console.error("Sign-in exception", signInError);
+      window.location.assign(safeCallbackPath(callbackUrl));
+    } catch {
       setFormError("Unable to sign in. Please try again.");
       setPending(false);
     }

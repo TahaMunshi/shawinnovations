@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
 import { BrandLogo } from "@/components/brand-logo";
+import { getSession } from "@/lib/session";
 
 export async function SiteHeader() {
-  const session = await auth();
+  const session = await getSession();
 
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(16,24,40,0.06)] bg-white/92 backdrop-blur-md">
