@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
 import type { Role } from "@prisma/client";
 
 declare module "next-auth" {
@@ -33,7 +32,10 @@ function guestEmail(username: string) {
   if (username.includes("@")) {
     return username.toLowerCase();
   }
-  const slug = username.replace(/[^a-zA-Z0-9]+/g, ".").replace(/^\.+|\.+$/g, "").toLowerCase();
+  const slug = username
+    .replace(/[^a-zA-Z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "")
+    .toLowerCase();
   return `${slug || "guest"}@shawinnovations.local`;
 }
 
@@ -46,6 +48,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     Credentials({
+      id: "credentials",
       name: "Credentials",
       credentials: {
         username: { label: "Username", type: "text" },
@@ -59,13 +62,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const admin = await prisma.user.findFirst({
-          where: { role: "ADMIN", isActive: true },
-          select: { id: true },
-        });
-
         return {
-          id: admin?.id ?? "000000000000000000000001",
+          id: "000000000000000000000001",
           email: guestEmail(username),
           name: username,
           role: "ADMIN" as Role,

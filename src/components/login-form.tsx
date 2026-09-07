@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 export function LoginForm({
   callbackUrl,
@@ -11,7 +10,6 @@ export function LoginForm({
   callbackUrl?: string;
   error?: string;
 }) {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
@@ -24,22 +22,29 @@ export function LoginForm({
     setPending(true);
     setFormError(null);
 
-    const result = await signIn("credentials", {
-      username,
-      password,
-      redirect: false,
-      callbackUrl: callbackUrl || "/dashboard",
-    });
+    const nextPath = callbackUrl || "/dashboard";
 
-    setPending(false);
+    try {
+      const result = await signIn("credentials", {
+        username,
+        password,
+        redirect: false,
+        callbackUrl: nextPath,
+      });
 
-    if (result?.error) {
+      if (!result || result.error) {
+        console.error("Sign-in failed", result);
+        setFormError("Unable to sign in. Please try again.");
+        setPending(false);
+        return;
+      }
+
+      window.location.assign(nextPath);
+    } catch (signInError) {
+      console.error("Sign-in exception", signInError);
       setFormError("Unable to sign in. Please try again.");
-      return;
+      setPending(false);
     }
-
-    router.push(result?.url || "/dashboard");
-    router.refresh();
   }
 
   return (
