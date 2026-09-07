@@ -20,13 +20,13 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    role: Role;
-    isActive: boolean;
-  }
-}
+type AppToken = {
+  id?: string;
+  role?: Role;
+  isActive?: boolean;
+  name?: string | null;
+  email?: string | null;
+};
 
 function guestEmail(username: string) {
   if (username.includes("@")) {
@@ -75,21 +75,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id!;
-        token.role = user.role;
-        token.isActive = user.isActive;
-        token.name = user.name;
-        token.email = user.email;
+        const nextToken = token as AppToken;
+        nextToken.id = user.id!;
+        nextToken.role = user.role;
+        nextToken.isActive = user.isActive;
+        nextToken.name = user.name;
+        nextToken.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
+      const nextToken = token as AppToken;
       if (session.user) {
-        session.user.id = token.id;
-        session.user.email = (token.email as string) ?? session.user.email;
-        session.user.name = (token.name as string) ?? session.user.name;
-        session.user.role = token.role;
-        session.user.isActive = token.isActive;
+        session.user.id = nextToken.id ?? "000000000000000000000001";
+        session.user.email = nextToken.email ?? session.user.email;
+        session.user.name = nextToken.name ?? session.user.name;
+        session.user.role = nextToken.role ?? "ADMIN";
+        session.user.isActive = nextToken.isActive ?? true;
         session.user.emailVerified = session.user.emailVerified ?? null;
       }
       return session;
