@@ -7,10 +7,18 @@ import { prisma } from "@/lib/prisma";
 import { getUserAccessibleSections } from "@/lib/permissions";
 import { requireSession } from "@/lib/session";
 
+type DashboardMeeting = {
+  id: string;
+  title: string;
+  scheduledAt: Date;
+  zoomJoinUrl: string | null;
+  section: { name: string } | null;
+};
+
 export default async function DashboardPage() {
   const session = await requireSession();
   let sections: Awaited<ReturnType<typeof getUserAccessibleSections>> = [];
-  let meetings: Awaited<ReturnType<typeof prisma.meeting.findMany>> = [];
+  let meetings: DashboardMeeting[] = [];
 
   try {
     sections = await getUserAccessibleSections(
@@ -25,7 +33,13 @@ export default async function DashboardPage() {
               scheduledAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
               access: { some: { userId: session.user.id } },
             },
-      include: { section: true },
+      select: {
+        id: true,
+        title: true,
+        scheduledAt: true,
+        zoomJoinUrl: true,
+        section: { select: { name: true } },
+      },
       orderBy: { scheduledAt: "asc" },
       take: 5,
     });

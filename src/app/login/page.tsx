@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { LoginForm } from "@/components/login-form";
-import { getSession, safeCallbackPath } from "@/lib/session";
+import { getSession } from "@/lib/session";
+import { safeCallbackPath } from "@/lib/gate";
 
 export default async function LoginPage({
   searchParams,

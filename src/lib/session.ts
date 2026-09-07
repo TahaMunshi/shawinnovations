@@ -26,7 +26,7 @@ export function sessionFromName(name: string): HubSession {
       id: "000000000000000000000001",
       email,
       name: trimmed,
-      role: "ADMIN",
+      role: "ADMIN" as Role,
       isActive: true,
     },
   };
