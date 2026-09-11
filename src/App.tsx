@@ -35,6 +35,72 @@ import { ProtectedRoute, safeReturnTo, useAuth } from "./auth";
 import { calendarEvents, getPanel, getPersona, meetings, panels, personas } from "./data";
 
 const ease = [0.16, 1, 0.3, 1] as const;
+const SPLASH_KEY = "shaw-splash-seen";
+
+function Splash() {
+  const reduce = useReducedMotion();
+  const [visible, setVisible] = useState(() => {
+    if (reduce) return false;
+    try {
+      return sessionStorage.getItem(SPLASH_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
+  const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    const fade = window.setTimeout(() => setLeaving(true), 1800);
+    const done = window.setTimeout(() => {
+      try {
+        sessionStorage.setItem(SPLASH_KEY, "1");
+      } catch {
+        /* preview-only */
+      }
+      setVisible(false);
+    }, 2300);
+    return () => {
+      window.clearTimeout(fade);
+      window.clearTimeout(done);
+    };
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <motion.div
+      className="splash"
+      role="dialog"
+      aria-label="Shaw Innovations"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: leaving ? 0 : 1 }}
+      transition={{ duration: 0.5, ease }}
+    >
+      <motion.div
+        className="splash-card"
+        initial={reduce ? false : { scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.7, ease }}
+      >
+        <img src="/brand/logo-mark.png" alt="" />
+      </motion.div>
+      <motion.span
+        className="splash-rule"
+        initial={reduce ? false : { scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.25, ease }}
+      />
+      <motion.p
+        initial={reduce ? false : { y: 10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.35, ease }}
+      >
+        Medical device collaboration
+      </motion.p>
+    </motion.div>
+  );
+}
 
 function PreviewBanner() {
   return (
@@ -44,15 +110,19 @@ function PreviewBanner() {
   );
 }
 
-function Brand() {
+function Brand({ light = false }: { light?: boolean }) {
   return (
-    <Link className="brand" to="/" aria-label="Shaw Innovations home">
-      <img src="/brand/logo-horizontal.png" alt="" />
+    <Link className={`brand ${light ? "light" : ""}`} to="/" aria-label="Shaw Innovations home">
+      <img src="/brand/logo-mark.png" alt="" />
+      <span>
+        <strong>Shaw Innovations</strong>
+        <small>Medical Device Collaboration</small>
+      </span>
     </Link>
   );
 }
 
-function Header() {
+function Header({ overlay = false }: { overlay?: boolean }) {
   const [open, setOpen] = useState(false);
   const [compact, setCompact] = useState(false);
   const { session, logout } = useAuth();
@@ -75,13 +145,13 @@ function Header() {
 
   return (
     <motion.header
-      className={`site-header ${compact ? "compact" : ""}`}
+      className={`site-header ${compact ? "compact" : ""} ${overlay ? "overlay" : ""}`}
       initial={reduce ? false : { y: -30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.7, ease }}
     >
       <div className="header-inner">
-        <Brand />
+        <Brand light={overlay && !compact} />
         <nav className="desktop-nav" aria-label="Primary">
           <Link to="/#who">Who it’s for</Link>
           <Link to="/#ecosystem">Ecosystem</Link>
@@ -150,11 +220,12 @@ function ScrollManager() {
 }
 
 function Layout({ children }: { children: ReactNode }) {
+  const home = useLocation().pathname === "/";
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${home ? "home-shell" : ""}`}>
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <PreviewBanner />
-      <Header />
+      {!home && <PreviewBanner />}
+      <Header overlay={home} />
       <main id="main-content" tabIndex={-1}>{children}</main>
       <Footer />
     </div>
@@ -188,52 +259,99 @@ function HomePage() {
   return (
     <>
       <section className="hero">
-        <div className="hero-visual" aria-hidden="true">
-          <div className="orbit one" /><div className="orbit two" />
-          <div className="hero-monogram">SI</div>
-        </div>
-        <div className="hero-copy">
-          <p className="eyebrow">Medical device collaboration</p>
-          <h1>Advancing<br />healthcare<br /><span>together.</span></h1>
-          <p>This public design preview explores how clinicians, engineers, and advisors could coordinate. It is not an authenticated system and stores no data.</p>
+        <img className="hero-photo" src="/imagery/hero-lab.jpg" alt="" />
+        <div className="hero-shade" aria-hidden="true" />
+        <div className="hero-copy page">
+          <p className="hero-pill">
+            <span aria-hidden="true" />
+            Now streamlining — Cross-disciplinary synergies
+          </p>
+          <h1>
+            The exclusive collaboration
+            <br />
+            ecosystem for <em>leading innovators.</em>
+          </h1>
+          <p>
+            An invitation-only preview of how sonographers, researchers, and
+            engineering pioneers could coordinate on medical device breakthroughs.
+          </p>
           <div className="button-row">
             <Link className="button" to="/login">Enter preview <ArrowRight aria-hidden="true" /></Link>
             <Link className="quiet-link" to="/#ecosystem">Explore ecosystem</Link>
           </div>
         </div>
+        <a className="scroll-cue" href="#who">Scroll</a>
       </section>
 
       <section id="who" className="section page">
-        <Reveal><p className="eyebrow">Who it’s for</p><h2>Every perspective in the device journey.</h2></Reveal>
+        <div className="split">
+          <Reveal>
+            <p className="eyebrow">Who it’s for</p>
+            <h2>Every perspective in the device journey.</h2>
+            <p className="lead">Clinicians, hospitals, engineers, and governance partners share one calm, invitation-only preview — the same people who would later shape a real device program.</p>
+          </Reveal>
+          <Reveal className="media-card">
+            <img src="/imagery/clinic-sonography.jpg" alt="" />
+            <span className="media-chip">Sonography advisors</span>
+          </Reveal>
+        </div>
         <div className="card-grid four">
           {audiences.map(([Icon, title, text], index) => (
             <Reveal key={title} delay={index * 0.09}>
-              <motion.article className="card" whileHover={reduce ? undefined : { y: -4 }}><Icon aria-hidden="true" /><h3>{title}</h3><p>{text}</p></motion.article>
+              <motion.article className="card" whileHover={reduce ? undefined : { y: -6 }}>
+                <span className="icon-well"><Icon aria-hidden="true" /></span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </motion.article>
             </Reveal>
           ))}
         </div>
       </section>
 
-      <section id="ecosystem" className="section alt">
+      <section id="ecosystem" className="section mint">
         <div className="page">
-          <Reveal><p className="eyebrow">Ecosystem</p><h2>Connected communities, designed with purpose.</h2><p className="lead">The preview groups {panels.length} sample and reserved panels across clinical, hospital, engineering, partner, and governance communities.</p></Reveal>
-          <div className="card-grid three">
-            {[...new Set(panels.map(({ community }) => community))].map((community, index) => (
-              <Reveal key={community} delay={(index % 3) * 0.1}><article className="card"><FileBox aria-hidden="true" /><h3>{community}</h3><p>{panels.filter((panel) => panel.community === community).length} panel concepts</p></article></Reveal>
-            ))}
+          <Reveal>
+            <p className="eyebrow">Ecosystem</p>
+            <h2>Connected communities, designed with purpose.</h2>
+            <p className="lead">The preview groups {panels.length} sample and reserved panels across clinical, hospital, engineering, partner, and governance communities.</p>
+          </Reveal>
+          <div className="bento">
+            <Reveal className="media-card tall">
+              <img src="/imagery/clinic-team.jpg" alt="" />
+              <span className="media-chip">Hospital + clinical communities</span>
+            </Reveal>
+            <div className="bento-list">
+              {[...new Set(panels.map(({ community }) => community))].map((community, index) => (
+                <Reveal key={community} delay={(index % 3) * 0.08}>
+                  <article className="card compact">
+                    <span className="icon-well small"><FileBox aria-hidden="true" /></span>
+                    <div>
+                      <h3>{community}</h3>
+                      <p>{panels.filter((panel) => panel.community === community).length} panel concepts</p>
+                    </div>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       <section id="how-it-works" className="section page">
-        <Reveal>
-          <p className="eyebrow">How it works</p>
-          <h2>A clear preview of the future collaboration flow.</h2>
-          <p className="lead">
-            Explore communities, enter a sample panel, review staged resources and
-            milestones, then inspect the proposed directory and administration tools.
-          </p>
-        </Reveal>
+        <div className="split">
+          <Reveal>
+            <p className="eyebrow">How it works</p>
+            <h2>A clear preview of the future collaboration flow.</h2>
+            <p className="lead">
+              Explore communities, enter a sample panel, review staged resources and
+              milestones, then inspect the proposed directory and administration tools.
+            </p>
+          </Reveal>
+          <Reveal className="media-card">
+            <img src="/imagery/device-review.jpg" alt="" />
+            <span className="media-chip">Shared design review</span>
+          </Reveal>
+        </div>
         <div className="card-grid four">
           {[
             ["01", "Discover", "Understand the people and communities involved."],
@@ -243,7 +361,7 @@ function HomePage() {
           ].map(([number, title, text], index) => (
             <Reveal key={title} delay={index * 0.09}>
               <article className="card">
-                <span className="step-number">{number}</span>
+                <span className="step-orb">{number}</span>
                 <h3>{title}</h3>
                 <p>{text}</p>
               </article>
@@ -252,9 +370,20 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="security" className="section alt">
+      <section id="security" className="section">
         <div className="page">
-        <Reveal><p className="eyebrow">Production intent</p><h2>Security is a roadmap requirement—not a staging claim.</h2><div className="notice"><ShieldCheck aria-hidden="true" /><p>A production service should enforce authentication, least-privilege authorization, auditability, and protected storage. This public build does none of those things; its login is only a browser-local staging gate.</p></div></Reveal>
+          <Reveal className="cta-banner">
+            <img src="/imagery/clinic-team.jpg" alt="" />
+            <div className="cta-shade" aria-hidden="true" />
+            <div className="cta-copy">
+              <p className="eyebrow">Production intent</p>
+              <h2>Security is a roadmap requirement—not a staging claim.</h2>
+              <div className="notice">
+                <ShieldCheck aria-hidden="true" />
+                <p>A production service should enforce authentication, least-privilege authorization, auditability, and protected storage. This public build does none of those things; its login is only a browser-local staging gate.</p>
+              </div>
+            </div>
+          </Reveal>
         </div>
       </section>
     </>
@@ -284,6 +413,11 @@ function LoginPage() {
 
   return (
     <section className="auth-page page">
+      <div className="auth-visual media-card">
+        <img src="/imagery/clinic-sonography.jpg" alt="" />
+        <span className="media-chip">Design preview only</span>
+      </div>
+      <div className="auth-stack">
       <div className="auth-panel"><p className="eyebrow">Staging gate</p><h1>Explore the collaboration concept.</h1><p>This is not real authentication. Any non-empty credentials work; only the username is kept in session storage and the password is never stored.</p></div>
       <form className="form-card" onSubmit={submit} noValidate>
         <h2>Preview login</h2>
@@ -292,6 +426,7 @@ function LoginPage() {
         <p className="form-message error" role="alert" aria-live="polite">{error}</p>
         <button className="button" type="submit">Enter design preview</button>
       </form>
+      </div>
     </section>
   );
 }
@@ -436,6 +571,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: bool
 export default function App() {
   return (
     <Layout>
+      <Splash />
       <ScrollManager />
       <AppErrorBoundary>
         <Routes>

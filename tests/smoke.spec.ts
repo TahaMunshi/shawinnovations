@@ -9,7 +9,7 @@ async function login(page: import("@playwright/test").Page, returnTo = "/dashboa
 
 test("public routes and branded missing route render", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Advancing healthcare together/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /exclusive collaboration/i })).toBeVisible();
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Preview login" })).toBeVisible();
   await page.goto("/missing-panel");
@@ -59,7 +59,7 @@ test("scroll restoration and reduced motion remain usable", async ({ page }) => 
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.goto("/");
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  await expect(page.getByRole("heading", { name: /Advancing healthcare together/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /exclusive collaboration/i })).toBeVisible();
 });
 
 test("viewport reveals run once when scrolled into view", async ({ page }) => {
