@@ -1,60 +1,57 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import {
-  Archive,
-  ChevronRight,
+  Camera,
   Hash,
   LogOut,
+  Mail,
   Menu,
-  MessageSquarePlus,
-  Plus,
+  MessageCircle,
+  PhoneOff,
   Search,
   Settings,
+  ShieldCheck,
+  UserPlus,
   Users,
+  Video,
   X,
 } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "./auth";
-import { communities, getPersona, personas, type ProjectTeam } from "./data";
+import { fixedGroups, type CollaborationGroup, type Persona } from "./data";
 import { useWorkspace } from "./workspace";
 
 function initials(name: string) {
   return name.split(" ").map((part) => part[0]).slice(0, 2).join("");
 }
 
-function Avatar({ userId, small = false }: { userId: string; small?: boolean }) {
-  const person = getPersona(userId);
-  if (!person) return null;
-  return person.headshot
-    ? <img className={`workspace-avatar photo ${small ? "small" : ""}`} src={person.headshot} alt="" />
-    : <span className={`workspace-avatar ${small ? "small" : ""}`} aria-hidden="true">{initials(person.name)}</span>;
-}
-
-function roleLabel(role: string) {
+function roleLabel(role: Persona["role"]) {
   return role === "admin" ? "Platform admin" : role.charAt(0).toUpperCase() + role.slice(1);
 }
 
-function SpaceMark({ label, active }: { label: string; active: boolean }) {
-  return <span className={`space-mark ${active ? "active" : ""}`} aria-hidden="true">{label.slice(0, 2).toUpperCase()}</span>;
+function Avatar({ member, small = false }: { member?: Persona; small?: boolean }) {
+  if (!member) return null;
+  return member.headshot
+    ? <img className={`workspace-avatar photo ${small ? "small" : ""}`} src={member.headshot} alt="" />
+    : <span className={`workspace-avatar ${small ? "small" : ""}`} aria-hidden="true">{initials(member.name)}</span>;
 }
 
 function WorkspaceNavigation({
-  activeType,
-  activeId,
+  activeGroupId,
+  activeDirectId,
   mobileOpen,
   closeMobile,
 }: {
-  activeType?: "community" | "team";
-  activeId?: string;
+  activeGroupId?: string;
+  activeDirectId?: string;
   mobileOpen: boolean;
   closeMobile: () => void;
 }) {
   const { session, logout } = useAuth();
-  const { teams } = useWorkspace();
+  const { members, requests } = useWorkspace();
   const navigate = useNavigate();
-  const visibleCommunities = communities.filter((community) =>
-    session?.role === "admin" || community.roles.includes(session?.role ?? "advisor"));
-  const visibleTeams = teams.filter((team) =>
-    !team.archived && (session?.role === "admin" || team.memberIds.includes(session?.userId ?? "")));
+  const currentMember = members.find((member) => member.id === session?.userId);
+  const visibleGroups = fixedGroups.filter((group) => currentMember?.groupIds.includes(group.id));
+  const directMembers = members.filter((member) => member.role !== "admin");
 
   const signOut = () => {
     logout();
@@ -63,33 +60,14 @@ function WorkspaceNavigation({
 
   return (
     <>
-      <aside className="space-rail" aria-label="Workspaces">
-        <Link className="space-logo" to="/" aria-label="Shaw Innovations home">
-          <img src="/brand/logo-mark.png" alt="" />
-        </Link>
+      <aside className="space-rail" aria-label="Assigned groups">
+        <Link className="space-logo" to="/" aria-label="Shaw Innovations home"><img src="/brand/logo-mark.png" alt="" /></Link>
         <span className="rail-rule" />
-        {visibleCommunities.map((community) => (
-          <Link
-            key={community.id}
-            to={`/app/community/${community.id}/channel/${community.channelIds[0]}`}
-            aria-label={community.name}
-            title={community.name}
-          >
-            <SpaceMark label={community.name} active={activeType === "community" && activeId === community.id} />
+        {visibleGroups.map((group) => (
+          <Link key={group.id} to={`/app/group/${group.id}`} aria-label={group.name} title={group.name}>
+            <span className={`space-mark ${activeGroupId === group.id ? "active" : ""}`}>{group.shortName}</span>
           </Link>
         ))}
-        <span className="rail-rule" />
-        {visibleTeams.map((team) => (
-          <Link
-            key={team.id}
-            to={`/app/team/${team.id}/channel/${team.channelIds[0]}`}
-            aria-label={team.name}
-            title={team.name}
-          >
-            <SpaceMark label={team.name} active={activeType === "team" && activeId === team.id} />
-          </Link>
-        ))}
-        <Link className="rail-add" to="/app/new-team" aria-label="Create cross-functional team" title="Create team"><Plus /></Link>
       </aside>
 
       <nav className={`channel-sidebar ${mobileOpen ? "mobile-open" : ""}`} aria-label="Workspace navigation">
@@ -98,36 +76,42 @@ function WorkspaceNavigation({
           <button className="sidebar-close" onClick={closeMobile} aria-label="Close workspace navigation"><X /></button>
         </div>
         <div className="sidebar-scroll">
-          <SidebarSection title="Communities">
-            {visibleCommunities.map((community) => (
-              <SpaceLink
-                key={community.id}
-                label={community.name}
-                active={activeType === "community" && activeId === community.id}
-                to={`/app/community/${community.id}/channel/${community.channelIds[0]}`}
-                onClick={closeMobile}
-              />
+          <SidebarSection title="Your groups">
+            {visibleGroups.map((group) => (
+              <Link className={activeGroupId === group.id ? "active" : ""} key={group.id} to={`/app/group/${group.id}`} onClick={closeMobile}>
+                <Hash />{group.name}
+              </Link>
             ))}
           </SidebarSection>
-          <SidebarSection title="My project teams" action={<Link to="/app/new-team" aria-label="Create team"><Plus /></Link>}>
-            {visibleTeams.map((team) => (
-              <SpaceLink
-                key={team.id}
-                label={team.name}
-                active={activeType === "team" && activeId === team.id}
-                to={`/app/team/${team.id}/channel/${team.channelIds[0]}`}
-                onClick={closeMobile}
-              />
-            ))}
-          </SidebarSection>
-          <div className="sidebar-tools" aria-label="Workspace tools">
-            <Link to="/app/directory" onClick={closeMobile}><Users /> Member directory</Link>
-            {session?.role === "admin" && <Link to="/admin/teams" onClick={closeMobile}><Settings /> Team oversight</Link>}
-          </div>
+
+          {session?.role === "admin" && (
+            <>
+              <SidebarSection title="Direct messages">
+                {directMembers.map((member) => (
+                  <Link className={activeDirectId === member.id ? "active" : ""} key={member.id} to={`/app/direct/${member.id}`} onClick={closeMobile}>
+                    <Avatar member={member} small />{member.name}
+                  </Link>
+                ))}
+              </SidebarSection>
+              <div className="sidebar-tools">
+                <Link to="/admin" onClick={closeMobile}>
+                  <Settings /> Administration
+                  {requests.some((request) => request.status === "pending") && <b>{requests.filter((request) => request.status === "pending").length}</b>}
+                </Link>
+              </div>
+            </>
+          )}
+          {session?.role !== "admin" && currentMember && (
+            <SidebarSection title="Direct messages">
+              <Link className={activeDirectId === currentMember.id ? "active" : ""} to={`/app/direct/${currentMember.id}`} onClick={closeMobile}>
+                <MessageCircle /> Platform admin
+              </Link>
+            </SidebarSection>
+          )}
         </div>
         <div className="current-user">
-          <Avatar userId={session?.userId ?? ""} small />
-          <div><strong>{session?.username}</strong><small>{roleLabel(session?.role ?? "")}</small></div>
+          <Avatar member={currentMember} small />
+          <div><strong>{session?.username}</strong><small>{session ? roleLabel(session.role) : ""}</small></div>
           <button onClick={signOut} aria-label="Log out"><LogOut /></button>
         </div>
       </nav>
@@ -135,34 +119,25 @@ function WorkspaceNavigation({
   );
 }
 
-function SidebarSection({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="sidebar-section">
-      <header><span>{title}</span>{action}</header>
-      <div>{children}</div>
-    </section>
-  );
-}
-
-function SpaceLink({ label, active, to, onClick }: { label: string; active: boolean; to: string; onClick: () => void }) {
-  return <Link className={active ? "active" : ""} to={to} onClick={onClick}><ChevronRight />{label}</Link>;
+function SidebarSection({ title, children }: { title: string; children: ReactNode }) {
+  return <section className="sidebar-section"><header><span>{title}</span></header><div>{children}</div></section>;
 }
 
 function WorkspaceFrame({
   children,
-  activeType,
-  activeId,
+  activeGroupId,
+  activeDirectId,
 }: {
   children: ReactNode;
-  activeType?: "community" | "team";
-  activeId?: string;
+  activeGroupId?: string;
+  activeDirectId?: string;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <div className="workspace-shell">
+    <div className="workspace-shell fixed-group-shell">
       <WorkspaceNavigation
-        activeType={activeType}
-        activeId={activeId}
+        activeGroupId={activeGroupId}
+        activeDirectId={activeDirectId}
         mobileOpen={mobileOpen}
         closeMobile={() => setMobileOpen(false)}
       />
@@ -175,140 +150,177 @@ function WorkspaceFrame({
 
 export function WorkspaceHome() {
   const { session } = useAuth();
-  const first = communities.find((community) =>
-    session?.role === "admin" || community.roles.includes(session?.role ?? "advisor"));
-  if (first) return <Navigate to={`/app/community/${first.id}/channel/${first.channelIds[0]}`} replace />;
-  return <Navigate to="/app/directory" replace />;
-}
-
-export function ChatWorkspace({ type }: { type: "community" | "team" }) {
-  const { spaceId, channelId } = useParams();
-  const { session } = useAuth();
-  const { channels, teams, messages, sendMessage, updateTeamMembers } = useWorkspace();
-  const [draft, setDraft] = useState("");
-  const community = type === "community" ? communities.find((item) => item.id === spaceId) : undefined;
-  const team = type === "team" ? teams.find((item) => item.id === spaceId) : undefined;
-  const space = community ?? team;
-  const allowed = community
-    ? session?.role === "admin" || community.roles.includes(session?.role ?? "advisor")
-    : team && !team.archived && (session?.role === "admin" || team.memberIds.includes(session?.userId ?? ""));
-  const activeChannel = channels.find((channel) => channel.id === channelId);
-  const spaceChannels = channels.filter((channel) => space?.channelIds.includes(channel.id));
-  const channelMessages = messages.filter((message) => message.channelId === channelId);
-  const memberIds = team
-    ? team.memberIds
-    : personas.filter((person) => session?.role === "admin" || community?.roles.includes(person.role)).map((person) => person.id);
-
-  if (!space || !activeChannel) return <Navigate to="/app" replace />;
-  if (!allowed) return <AccessDenied />;
-
-  const submitMessage = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!session) return;
-    sendMessage(activeChannel.id, session.userId, draft);
-    setDraft("");
-  };
-
+  const { members } = useWorkspace();
+  const member = members.find((item) => item.id === session?.userId);
+  const firstGroup = fixedGroups.find((group) => member?.groupIds.includes(group.id));
+  if (firstGroup) return <Navigate to={`/app/group/${firstGroup.id}`} replace />;
   return (
-    <WorkspaceFrame activeType={type} activeId={space.id}>
-      <aside className="room-sidebar">
-        <div className="room-title">
-          <span>{type === "community" ? "Community" : "Project team"}</span>
-          <strong>{space.name}</strong>
-          <p>{space.description}</p>
-        </div>
-        <nav aria-label={`${space.name} channels`}>
-          <span className="channel-label">Text channels</span>
-          {spaceChannels.map((channel) => (
-            <Link
-              className={channel.id === channelId ? "active" : ""}
-              key={channel.id}
-              to={`/app/${type}/${space.id}/channel/${channel.id}`}
-            >
-              <Hash />{channel.name}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      <main className="chat-panel">
-        <header className="chat-header">
-          <div><Hash /><span><strong>{activeChannel.name}</strong><small>{activeChannel.description}</small></span></div>
-          <span className="prototype-badge">Browser-only prototype</span>
-        </header>
-        <section className="message-list" aria-label={`${activeChannel.name} messages`} aria-live="polite">
-          <div className="channel-intro">
-            <span><Hash /></span>
-            <h1>Welcome to #{activeChannel.name}</h1>
-            <p>{activeChannel.description}</p>
-          </div>
-          {channelMessages.map((message) => {
-            const author = getPersona(message.authorId);
-            return (
-              <article className="message" key={message.id}>
-                <Avatar userId={message.authorId} />
-                <div>
-                  <header><strong>{author?.name ?? "Platform member"}</strong><span>{roleLabel(author?.role ?? "")}</span><time>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time></header>
-                  <p>{message.body}</p>
-                </div>
-              </article>
-            );
-          })}
-        </section>
-        <form className="message-composer" onSubmit={submitMessage}>
-          <MessageSquarePlus aria-hidden="true" />
-          <label className="sr-only" htmlFor="message-draft">Message #{activeChannel.name}</label>
-          <input id="message-draft" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Message #${activeChannel.name}`} />
-          <button type="submit" disabled={!draft.trim()}>Send</button>
-        </form>
+    <WorkspaceFrame>
+      <main className="workspace-page centered">
+        <span className="page-icon"><ShieldCheck /></span>
+        <h1>No group has been assigned yet.</h1>
+        <p>An administrator must approve your access and add you to one of the six collaboration groups.</p>
       </main>
-
-      <MembersPanel key={team?.id ?? community?.id} team={team} memberIds={memberIds} canManage={Boolean(team && (session?.role === "admin" || team.ownerId === session?.userId))} onSave={updateTeamMembers} />
     </WorkspaceFrame>
   );
 }
 
-function MembersPanel({
-  team,
-  memberIds,
-  canManage,
-  onSave,
-}: {
-  team?: ProjectTeam;
-  memberIds: string[];
-  canManage: boolean;
-  onSave: (teamId: string, memberIds: string[]) => void;
-}) {
-  const [selection, setSelection] = useState(memberIds);
+export function GroupChatPage() {
+  const { groupId } = useParams();
+  const { session } = useAuth();
+  const { members, messages, calls, sendMessage, startCall, joinCall, endCall } = useWorkspace();
+  const [draft, setDraft] = useState("");
+  const group = fixedGroups.find((item) => item.id === groupId);
+  const currentMember = members.find((member) => member.id === session?.userId);
+  const allowed = group && currentMember?.groupIds.includes(group.id);
+  const groupMembers = members.filter((member) => group && member.groupIds.includes(group.id));
+  const groupMessages = messages.filter((message) => message.channelId === group?.channelId);
+  const call = calls.find((item) => item.groupId === group?.id);
 
-  const toggle = (id: string) => {
-    setSelection((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  if (!group) return <Navigate to="/app" replace />;
+  if (!allowed) return <AccessDenied />;
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!session) return;
+    sendMessage(group.channelId, session.userId, draft);
+    setDraft("");
   };
 
   return (
-    <aside className="members-panel" aria-label="Members">
-      <header><span>Members</span><b>{memberIds.length}</b></header>
-      <div className="members-list">
-        {memberIds.map((id) => {
-          const person = getPersona(id);
-          return person ? <div className="member-row" key={id}><Avatar userId={id} small /><span><strong>{person.name}</strong><small>{roleLabel(person.role)}{team?.ownerId === id ? " · Owner" : ""}</small></span></div> : null;
-        })}
-      </div>
-      {team && canManage && (
-        <details className="roster-editor">
-          <summary>Manage team roster</summary>
-          <div>
-            {personas.map((person) => (
-              <label key={person.id}>
-                <input type="checkbox" checked={selection.includes(person.id)} disabled={team.ownerId === person.id} onChange={() => toggle(person.id)} />
-                <span>{person.name}<small>{roleLabel(person.role)}</small></span>
-              </label>
-            ))}
-            <button className="workspace-button" type="button" onClick={() => onSave(team.id, selection)}>Save membership</button>
+    <WorkspaceFrame activeGroupId={group.id}>
+      <main className="chat-panel fixed-chat-panel">
+        <header className="chat-header">
+          <div><Hash /><span><strong>{group.name}</strong><small>{group.description}</small></span></div>
+          {session?.role === "admin" && !call && <button className="call-start" onClick={() => startCall(group.id, session.userId)}><Video /> Start group call</button>}
+        </header>
+
+        <section className="message-list" aria-label={`${group.name} messages`} aria-live="polite">
+          <GroupCallPanel group={group} call={call} currentMember={currentMember} members={members} onJoin={joinCall} onEnd={endCall} />
+          <div className="channel-intro">
+            <span><Hash /></span>
+            <h1>{group.name}</h1>
+            <p>{group.description} Only members assigned by an administrator can view and participate.</p>
           </div>
-        </details>
+          {groupMessages.map((message) => {
+            const author = members.find((member) => member.id === message.authorId);
+            return <MessageRow key={message.id} author={author} body={message.body} createdAt={message.createdAt} />;
+          })}
+        </section>
+
+        <form className="message-composer" onSubmit={submit}>
+          <MessageCircle aria-hidden="true" />
+          <label className="sr-only" htmlFor="group-message">Message {group.name}</label>
+          <input id="group-message" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Message ${group.name}`} />
+          <button type="submit" disabled={!draft.trim()}>Send</button>
+        </form>
+      </main>
+      <MembersPanel group={group} members={groupMembers} />
+    </WorkspaceFrame>
+  );
+}
+
+function GroupCallPanel({
+  group,
+  call,
+  currentMember,
+  members,
+  onJoin,
+  onEnd,
+}: {
+  group: CollaborationGroup;
+  call?: ReturnType<typeof useWorkspace>["calls"][number];
+  currentMember?: Persona;
+  members: Persona[];
+  onJoin: (groupId: string, memberId: string) => void;
+  onEnd: (groupId: string) => void;
+}) {
+  if (!call || !currentMember) return null;
+  const joined = call.participantIds.includes(currentMember.id);
+  return (
+    <section className={`group-call ${joined ? "joined" : ""}`} aria-label="Active group call">
+      <div className="call-heading">
+        <span><Camera /></span>
+        <div><strong>{group.name} call is live</strong><small>Private dummy call · available only inside this group</small></div>
+        {!joined && <button onClick={() => onJoin(group.id, currentMember.id)}>Join call</button>}
+        {joined && currentMember.role === "admin" && <button className="end" onClick={() => onEnd(group.id)}><PhoneOff /> End call</button>}
+      </div>
+      {joined && (
+        <div className="call-stage">
+          {call.participantIds.map((id) => {
+            const participant = members.find((member) => member.id === id);
+            return <div key={id}><Avatar member={participant} /><strong>{participant?.name}</strong><span><Camera /> Connected</span></div>;
+          })}
+        </div>
       )}
+    </section>
+  );
+}
+
+function MessageRow({ author, body, createdAt }: { author?: Persona; body: string; createdAt: string }) {
+  return (
+    <article className="message">
+      <Avatar member={author} />
+      <div>
+        <header><strong>{author?.name ?? "Platform member"}</strong>{author && <span>{roleLabel(author.role)}</span>}<time>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(createdAt))}</time></header>
+        <p>{body}</p>
+      </div>
+    </article>
+  );
+}
+
+function MembersPanel({ group, members }: { group: CollaborationGroup; members: Persona[] }) {
+  return (
+    <aside className="members-panel fixed-members-panel" aria-label={`${group.name} members`}>
+      <header><span>Group members</span><b>{members.length}</b></header>
+      <p className="member-access-note">Only these assigned members can access this chat.</p>
+      <div className="members-list">
+        {members.map((member) => (
+          <div className="member-row" key={member.id}><Avatar member={member} small /><span><strong>{member.name}</strong><small>{roleLabel(member.role)}</small></span></div>
+        ))}
+      </div>
     </aside>
+  );
+}
+
+export function DirectMessagePage() {
+  const { memberId } = useParams();
+  const { session } = useAuth();
+  const { members, messages, sendMessage } = useWorkspace();
+  const [draft, setDraft] = useState("");
+  const target = members.find((member) => member.id === memberId && member.role !== "admin");
+  const admin = members.find((member) => member.id === session?.userId);
+  const channelId = `direct-${target?.id}`;
+
+  if (!session) return <Navigate to="/login" replace />;
+  const canAccess = session?.role === "admin" || session?.userId === target?.id;
+  if (!canAccess) return <Navigate to="/app" replace />;
+  if (!target) return <Navigate to="/app" replace />;
+  const directMessages = messages.filter((message) => message.channelId === channelId);
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    sendMessage(channelId, session.userId, draft);
+    setDraft("");
+  };
+
+  return (
+    <WorkspaceFrame activeDirectId={target.id}>
+      <main className="chat-panel direct-chat-panel">
+        <header className="chat-header"><div><Avatar member={target} small /><span><strong>{target.name}</strong><small>Private admin direct message · {target.title}</small></span></div><span className="prototype-badge">Private message</span></header>
+        <section className="message-list" aria-label={`Direct messages with ${target.name}`}>
+          <div className="channel-intro"><Avatar member={target} /><h1>{target.name}</h1><p>This private conversation is available only to the platform admin and {target.name}.</p></div>
+          {!directMessages.length && <p className="empty-conversation">No direct messages yet. Start the conversation below.</p>}
+          {directMessages.map((message) => <MessageRow key={message.id} author={message.authorId === admin?.id ? admin : target} body={message.body} createdAt={message.createdAt} />)}
+        </section>
+        <form className="message-composer" onSubmit={submit}>
+          <Mail />
+          <label className="sr-only" htmlFor="direct-message">Message {target.name}</label>
+          <input id="direct-message" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Message ${target.name}`} />
+          <button type="submit" disabled={!draft.trim()}>Send</button>
+        </form>
+      </main>
+    </WorkspaceFrame>
   );
 }
 
@@ -316,125 +328,110 @@ function AccessDenied() {
   return (
     <WorkspaceFrame>
       <main className="workspace-page centered">
-        <span className="page-icon"><Users /></span>
-        <h1>This space isn’t assigned to you.</h1>
-        <p>Choose one of your communities or project teams from the workspace navigation.</p>
-        <Link className="workspace-button" to="/app">Return to your workspace</Link>
+        <span className="page-icon"><ShieldCheck /></span>
+        <h1>This group isn’t assigned to you.</h1>
+        <p>Members can only view and talk in groups assigned by an administrator.</p>
+        <Link className="workspace-button" to="/app">Return to your groups</Link>
       </main>
     </WorkspaceFrame>
   );
 }
 
-export function DirectoryPage() {
+export function AdminPage() {
+  const {
+    members,
+    requests,
+    approveRequest,
+    addMemberToGroup,
+    removeMemberFromGroup,
+    resetWorkspace,
+  } = useWorkspace();
   const [query, setQuery] = useState("");
-  const filtered = personas.filter((person) =>
-    `${person.name} ${person.title} ${person.organization} ${person.role}`.toLowerCase().includes(query.toLowerCase()));
-  return (
-    <WorkspaceFrame>
-      <main className="workspace-page">
-        <header className="workspace-page-heading">
-          <div><span>Platform directory</span><h1>Find a collaborator.</h1><p>Everyone available for advisor, engineering, research, and project teams.</p></div>
-          <Link className="workspace-button" to="/app/new-team"><Plus /> Create a team</Link>
-        </header>
-        <label className="directory-search"><Search /><span className="sr-only">Search members</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, role, or organization" /></label>
-        <div className="workspace-directory">
-          {filtered.map((person) => <article key={person.id}><Avatar userId={person.id} /><div><span>{roleLabel(person.role)}</span><h2>{person.name}</h2><p>{person.title}<br />{person.organization}{person.certification ? ` · ${person.certification}` : ""}</p></div></article>)}
-        </div>
-      </main>
-    </WorkspaceFrame>
-  );
-}
+  const pending = requests.filter((request) => request.status === "pending");
+  const visibleMembers = members.filter((member) => `${member.name} ${member.email} ${member.title}`.toLowerCase().includes(query.toLowerCase()));
 
-export function CreateTeamPage() {
-  const { session } = useAuth();
-  const { createTeam } = useWorkspace();
-  const navigate = useNavigate();
-  const [selected, setSelected] = useState<string[]>([]);
-  const [error, setError] = useState("");
-  const candidates = personas.filter((person) => person.id !== session?.userId);
-
-  const toggle = (id: string) => setSelected((current) =>
-    current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const approve = (event: FormEvent<HTMLFormElement>, requestId: string) => {
     event.preventDefault();
-    if (!session) return;
-    const form = new FormData(event.currentTarget);
-    const name = String(form.get("team-name") ?? "").trim();
-    const description = String(form.get("team-description") ?? "").trim();
-    if (!name) {
-      setError("Give the project team a name.");
-      return;
-    }
-    if (!selected.length) {
-      setError("Select at least one other platform member.");
-      return;
-    }
-    const team = createTeam({ name, description, ownerId: session.userId, memberIds: selected });
-    navigate(`/app/team/${team.id}/channel/${team.channelIds[0]}`);
+    const groupId = String(new FormData(event.currentTarget).get("group"));
+    approveRequest(requestId, groupId);
+  };
+
+  const invite = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const email = String(data.get("email") ?? "");
+    const groupId = String(data.get("group") ?? "");
+    const group = fixedGroups.find((item) => item.id === groupId);
+    const subject = encodeURIComponent(`Invitation to ${group?.name ?? "Shaw Innovations"}`);
+    const body = encodeURIComponent(`You’re invited to apply for access to the ${group?.name ?? ""} group at Shaw Innovations.\n\nOpen the collaboration preview and complete the onboarding form.`);
+    window.location.href = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
   };
 
   return (
     <WorkspaceFrame>
-      <main className="workspace-page">
-        <header className="workspace-page-heading compact">
-          <div><span>Member-created workspace</span><h1>Create a cross-functional team.</h1><p>Bring advisors and engineers together around a focused sonography product initiative.</p></div>
-        </header>
-        <form className="team-builder" onSubmit={submit}>
-          <section>
-            <h2>Project details</h2>
-            <label>Team name<input name="team-name" placeholder="e.g. Probe Ergonomics Review" /></label>
-            <label>Purpose<textarea name="team-description" rows={4} placeholder="What will this team work on?" /></label>
-            <div className="team-note"><strong>You’ll be the team owner.</strong><p>You can update membership later. Admins can oversee every team in this browser-only prototype.</p></div>
-          </section>
-          <section>
-            <h2>Add platform members</h2>
-            <p>Select any combination of advisors, engineers, faculty, and administrators.</p>
-            <div className="member-picker">
-              {candidates.map((person) => (
-                <label key={person.id} className={selected.includes(person.id) ? "selected" : ""}>
-                  <input type="checkbox" checked={selected.includes(person.id)} onChange={() => toggle(person.id)} />
-                  <Avatar userId={person.id} small />
-                  <span><strong>{person.name}</strong><small>{roleLabel(person.role)} · {person.title}</small></span>
-                </label>
-              ))}
-            </div>
-          </section>
-          <footer>
-            <p className="form-message error" role="alert">{error}</p>
-            <Link className="workspace-button secondary" to="/app">Cancel</Link>
-            <button className="workspace-button" type="submit">Create team</button>
-          </footer>
-        </form>
-      </main>
-    </WorkspaceFrame>
-  );
-}
-
-export function AdminTeamsPage() {
-  const { teams, toggleTeamArchived, resetWorkspace } = useWorkspace();
-  return (
-    <WorkspaceFrame>
-      <main className="workspace-page">
+      <main className="workspace-page admin-workspace">
         <header className="workspace-page-heading">
-          <div><span>Admin oversight</span><h1>Cross-functional teams.</h1><p>Inspect and manage every seeded or member-created project team in this local prototype.</p></div>
-          <Link className="workspace-button" to="/app/new-team"><Plus /> Create a team</Link>
+          <div><span>Platform administration</span><h1>Members and group access.</h1><p>Approve onboarding requests, assign members to one of six fixed groups, and prepare email invitations.</p></div>
+          <Link className="workspace-button secondary" to="/app"><Hash /> Open groups</Link>
         </header>
-        <div className="oversight-list">
-          {teams.map((team) => {
-            const owner = getPersona(team.ownerId);
-            return (
-              <article key={team.id} className={team.archived ? "archived" : ""}>
-                <div className="team-symbol">{team.name.slice(0, 2).toUpperCase()}</div>
-                <div><span>{team.archived ? "Archived" : "Active project"}</span><h2>{team.name}</h2><p>{team.description}</p><small>Owner: {owner?.name} · {team.memberIds.length} members · {team.channelIds.length} channels</small></div>
-                <div>
-                  {!team.archived && <Link className="workspace-button secondary" to={`/app/team/${team.id}/channel/${team.channelIds[0]}`}>Open</Link>}
-                  <button className="workspace-button ghost" type="button" onClick={() => toggleTeamArchived(team.id)}><Archive /> {team.archived ? "Restore" : "Archive"}</button>
-                </div>
+
+        <section className="admin-summary">
+          <article><strong>6</strong><span>Fixed groups</span></article>
+          <article><strong>{members.length}</strong><span>Approved members</span></article>
+          <article><strong>{pending.length}</strong><span>Pending approvals</span></article>
+        </section>
+
+        <div className="admin-columns">
+          <section className="admin-panel">
+            <header><div><UserPlus /><span><h2>Pending onboarding</h2><p>Approve each person and choose their initial group.</p></span></div><b>{pending.length}</b></header>
+            {!pending.length && <p className="admin-empty">No pending onboarding requests.</p>}
+            {pending.map((request) => (
+              <article className="approval-card" key={request.id}>
+                <div><span>{roleLabel(request.role)}</span><h3>{request.name}</h3><p>{request.title} · {request.organization}<br />{request.email}</p><small>{request.note}</small></div>
+                <form onSubmit={(event) => approve(event, request.id)}>
+                  <label>Assign group<select name="group">{fixedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
+                  <button className="workspace-button" type="submit">Approve and add</button>
+                </form>
               </article>
-            );
-          })}
+            ))}
+          </section>
+
+          <form className="admin-panel invite-panel" onSubmit={invite}>
+            <header><div><Mail /><span><h2>Email invitation</h2><p>Open your email app with a prepared group invitation.</p></span></div></header>
+            <label>Email address<input name="email" type="email" required placeholder="new.member@example.com" /></label>
+            <label>Suggested group<select name="group">{fixedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
+            <button className="workspace-button" type="submit"><Mail /> Prepare email invite</button>
+          </form>
         </div>
+
+        <section className="admin-panel member-management">
+          <header><div><Users /><span><h2>Approved members</h2><p>Add or remove group access. The admin remains in every group.</p></span></div></header>
+          <label className="directory-search"><Search /><span className="sr-only">Search approved members</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search members" /></label>
+          <div className="member-admin-list">
+            {visibleMembers.map((member) => (
+              <article key={member.id}>
+                <div className="member-admin-profile"><Avatar member={member} /><span><strong>{member.name}</strong><small>{member.email}<br />{roleLabel(member.role)} · {member.title}</small></span></div>
+                <div className="group-access-list">
+                  {fixedGroups.map((group) => {
+                    const assigned = member.groupIds.includes(group.id);
+                    return (
+                      <button
+                        type="button"
+                        key={group.id}
+                        className={assigned ? "assigned" : ""}
+                        disabled={member.role === "admin"}
+                        onClick={() => assigned ? removeMemberFromGroup(member.id, group.id) : addMemberToGroup(member.id, group.id)}
+                      >
+                        {assigned ? "✓ " : "+ "}{group.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {member.role !== "admin" && <Link className="dm-link" to={`/app/direct/${member.id}`}><MessageCircle /> Direct message</Link>}
+              </article>
+            ))}
+          </div>
+        </section>
         <button className="reset-link" type="button" onClick={resetWorkspace}>Reset all local demo data</button>
       </main>
     </WorkspaceFrame>

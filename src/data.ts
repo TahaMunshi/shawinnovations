@@ -4,10 +4,11 @@ export type Persona = {
   email: string;
   title: string;
   organization: string;
-  role: "admin" | "advisor" | "engineer" | "faculty";
+  role: "admin" | "advisor" | "engineer" | "faculty" | "legal";
   certification?: string;
   headshot?: string;
   panels: string[];
+  groupIds: string[];
 };
 
 export type Resource = {
@@ -162,13 +163,50 @@ export const panels: Panel[] = [
 ];
 
 export const personas: Persona[] = [
-  { id: "admin-1", name: "Shaw Preview Admin", email: "admin@shawinnovations.com", title: "Program administrator", organization: "Shaw Innovations", role: "admin", panels: panels.map(({ slug }) => slug) },
-  { id: "advisor-1", name: "Jordan Ellis", email: "jordan@example.test", title: "Lead sonographer", organization: "Sample Health System", role: "advisor", certification: "RDMS", headshot: "/imagery/sonography.jpg", panels: ["sonographer-advisors", "clinical-advisors", "ideas-board"] },
-  { id: "advisor-2", name: "Maya Brooks", email: "maya@example.test", title: "Clinical advisor", organization: "Orlando Regional Health", role: "advisor", certification: "RDCS", panels: ["sonographer-advisors", "clinical-advisors"] },
-  { id: "engineer-1", name: "Morgan Chen", email: "morgan@example.test", title: "Mechanical engineer", organization: "Shaw Innovations", role: "engineer", panels: ["shared-design-prototypes", "engineering-collaborative"] },
-  { id: "engineer-2", name: "Alex Rivera", email: "alex@example.test", title: "Electrical engineer", organization: "Shaw Innovations", role: "engineer", panels: ["shared-design-prototypes", "engineering-collaborative"] },
-  { id: "faculty-1", name: "Dr. Avery Patel", email: "avery@example.test", title: "Faculty research partner", organization: "Sample University", role: "faculty", certification: "PhD", panels: ["university-faculty-partners"] },
+  { id: "admin-1", name: "Shaw Preview Admin", email: "admin@shawinnovations.com", title: "Program administrator", organization: "Shaw Innovations", role: "admin", panels: panels.map(({ slug }) => slug), groupIds: ["sonography-advisors", "clinical-advisors", "engineering", "design-prototypes", "university-partners", "ip-legal"] },
+  { id: "advisor-1", name: "Jordan Ellis", email: "jordan@example.test", title: "Lead sonographer", organization: "Sample Health System", role: "advisor", certification: "RDMS", headshot: "/imagery/sonography.jpg", panels: ["sonographer-advisors", "clinical-advisors", "ideas-board"], groupIds: ["sonography-advisors"] },
+  { id: "advisor-2", name: "Maya Brooks", email: "maya@example.test", title: "Clinical advisor", organization: "Orlando Regional Health", role: "advisor", certification: "RDCS", panels: ["sonographer-advisors", "clinical-advisors"], groupIds: ["clinical-advisors"] },
+  { id: "engineer-1", name: "Morgan Chen", email: "morgan@example.test", title: "Mechanical engineer", organization: "Shaw Innovations", role: "engineer", panels: ["shared-design-prototypes", "engineering-collaborative"], groupIds: ["engineering"] },
+  { id: "engineer-2", name: "Alex Rivera", email: "alex@example.test", title: "Electrical engineer", organization: "Shaw Innovations", role: "engineer", panels: ["shared-design-prototypes", "engineering-collaborative"], groupIds: ["design-prototypes"] },
+  { id: "faculty-1", name: "Dr. Avery Patel", email: "avery@example.test", title: "Faculty research partner", organization: "Sample University", role: "faculty", certification: "PhD", panels: ["university-faculty-partners"], groupIds: ["university-partners"] },
+  { id: "legal-1", name: "Elena Park", email: "elena@example.test", title: "IP counsel", organization: "Shaw Innovations", role: "legal", panels: ["ip-legal"], groupIds: ["ip-legal"] },
 ];
+
+export type CollaborationGroup = {
+  id: string;
+  name: string;
+  shortName: string;
+  description: string;
+  channelId: string;
+};
+
+export const fixedGroups: CollaborationGroup[] = [
+  { id: "sonography-advisors", name: "Sonography Advisors", shortName: "SA", description: "Sonography workflow insight, scanning experience, and device feedback.", channelId: "group-sonography-advisors" },
+  { id: "clinical-advisors", name: "Clinical Advisors", shortName: "CA", description: "Clinical validation, patient-care considerations, and product guidance.", channelId: "group-clinical-advisors" },
+  { id: "engineering", name: "Engineering", shortName: "EN", description: "Mechanical, electrical, and industrial engineering collaboration.", channelId: "group-engineering" },
+  { id: "design-prototypes", name: "Design & Prototypes", shortName: "DP", description: "Design reviews, CAD handoffs, prototype notes, and testing feedback.", channelId: "group-design-prototypes" },
+  { id: "university-partners", name: "University Partners", shortName: "UP", description: "Research collaboration with faculty and university partners.", channelId: "group-university-partners" },
+  { id: "ip-legal", name: "IP & Legal", shortName: "IP", description: "Permission-controlled intellectual-property and legal coordination.", channelId: "group-ip-legal" },
+];
+
+export type OnboardingRequest = {
+  id: string;
+  name: string;
+  email: string;
+  title: string;
+  organization: string;
+  role: Persona["role"];
+  note: string;
+  status: "pending" | "approved";
+  createdAt: string;
+};
+
+export type GroupCall = {
+  groupId: string;
+  startedBy: string;
+  startedAt: string;
+  participantIds: string[];
+};
 
 export type Community = {
   id: "advisors" | "engineers";
@@ -248,6 +286,16 @@ export const seededMessages: Message[] = [
   { id: "message-3", channelId: "engineering-general", authorId: "engineer-1", body: "The latest enclosure concept is ready for a cross-discipline review.", createdAt: "2026-09-14T14:10:00.000Z" },
   { id: "message-4", channelId: "portable-sonography-general", authorId: "admin-1", body: "This team brings clinical advisors and engineers together around one product goal.", createdAt: "2026-09-14T14:30:00.000Z" },
   { id: "message-5", channelId: "portable-sonography-general", authorId: "advisor-1", body: "I added workflow notes from today’s sonography session for the engineering team.", createdAt: "2026-09-14T14:42:00.000Z" },
+];
+
+export const seededGroupMessages: Message[] = [
+  { id: "group-message-1", channelId: "group-sonography-advisors", authorId: "admin-1", body: "Welcome to the Sonography Advisors group. This room is visible only to assigned members.", createdAt: "2026-09-15T13:00:00.000Z" },
+  { id: "group-message-2", channelId: "group-sonography-advisors", authorId: "advisor-1", body: "I’ll share workflow observations from this week’s scanning sessions here.", createdAt: "2026-09-15T13:08:00.000Z" },
+  { id: "group-message-3", channelId: "group-clinical-advisors", authorId: "advisor-2", body: "I’m reviewing the clinical validation questions for the next product checkpoint.", createdAt: "2026-09-15T13:20:00.000Z" },
+  { id: "group-message-4", channelId: "group-engineering", authorId: "engineer-1", body: "The enclosure and thermal constraints are ready for engineering review.", createdAt: "2026-09-15T13:35:00.000Z" },
+  { id: "group-message-5", channelId: "group-design-prototypes", authorId: "engineer-2", body: "Prototype notes and CAD review decisions will stay in this group.", createdAt: "2026-09-15T13:50:00.000Z" },
+  { id: "group-message-6", channelId: "group-university-partners", authorId: "faculty-1", body: "The university research team is ready to review the study outline.", createdAt: "2026-09-15T14:05:00.000Z" },
+  { id: "group-message-7", channelId: "group-ip-legal", authorId: "legal-1", body: "Please keep invention and disclosure discussions inside this assigned group.", createdAt: "2026-09-15T14:20:00.000Z" },
 ];
 
 export const meetings: Meeting[] = [

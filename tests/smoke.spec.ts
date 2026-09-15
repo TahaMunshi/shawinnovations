@@ -28,56 +28,80 @@ test("public routes and role-based preview entry render", async ({ page }) => {
 });
 
 test("protected workspace deep link returns correctly and logout clears session", async ({ page }) => {
-  const destination = "/app/community/advisors/channel/clinical-feedback";
+  const destination = "/app/group/sonography-advisors";
   await page.goto(destination);
   await expect(page).toHaveURL(/\/login\?returnTo=/);
   await login(page, "advisor", destination);
   await expect(page).toHaveURL(new RegExp(`${destination}$`));
-  await expect(page.getByRole("heading", { name: /welcome to #clinical-feedback/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sonography Advisors", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Log out" }).click();
   await page.goto("/app");
   await expect(page).toHaveURL(/\/login\?returnTo=/);
 });
 
-test("role communities are visible only to the appropriate member", async ({ page }) => {
+test("members see only groups assigned by the admin", async ({ page }) => {
   await login(page, "advisor");
   const navigation = page.getByRole("navigation", { name: "Workspace navigation" });
-  await expect(navigation.getByRole("link", { name: "Advisor Community" })).toBeVisible();
-  await expect(navigation.getByRole("link", { name: "Engineering Community" })).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "Sonography Advisors" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Engineering" })).toHaveCount(0);
+  await page.goto("/app/group/engineering");
+  await expect(page.getByRole("heading", { name: /isn’t assigned to you/i })).toBeVisible();
 
   await page.getByRole("button", { name: "Log out" }).click();
   await login(page, "engineer");
-  await expect(navigation.getByRole("link", { name: "Engineering Community" })).toBeVisible();
-  await expect(navigation.getByRole("link", { name: "Advisor Community" })).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "Engineering" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Sonography Advisors" })).toHaveCount(0);
 });
 
-test("a member can create a mixed team and its messages persist locally", async ({ page }) => {
-  await login(page, "advisor", "/app/new-team");
-  await page.getByLabel("Team name").fill("Probe Ergonomics");
-  await page.getByLabel("Purpose").fill("Join clinical and engineering feedback.");
-  await page.getByText("Morgan Chen", { exact: true }).click();
-  await page.getByText("Maya Brooks", { exact: true }).click();
-  await page.getByRole("button", { name: "Create team", exact: true }).click();
+test("onboarding requests require admin approval and group assignment", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("tab", { name: "Request access" }).click();
+  await page.getByLabel("Full name").fill("Casey Lee");
+  await page.getByLabel("Email").fill("casey@example.test");
+  await page.getByLabel("Title or specialty").fill("Product engineer");
+  await page.getByLabel("Organization").fill("Device Lab");
+  await page.getByLabel("Professional role").selectOption("engineer");
+  await page.getByLabel("How would you contribute?").fill("Prototype and testing support.");
+  await page.getByRole("button", { name: "Submit for approval" }).click();
+  await expect(page.getByText(/application submitted/i)).toBeVisible();
 
-  await expect(page).toHaveURL(/\/app\/team\/probe-ergonomics-\d+\/channel\/.*-general$/);
-  await expect(page.getByText("Probe Ergonomics", { exact: true }).first()).toBeVisible();
-  await page.getByLabel(/Message #general/i).fill("Clinical and engineering review starts here.");
+  await page.getByRole("tab", { name: "Approved member" }).click();
+  await page.getByRole("button", { name: /Shaw Preview Admin/i }).click();
+  await page.goto("/admin");
+  const request = page.locator(".approval-card").filter({ hasText: "Casey Lee" });
+  await request.getByLabel("Assign group").selectOption("design-prototypes");
+  await request.getByRole("button", { name: "Approve and add" }).click();
+  await expect(page.locator(".member-admin-list").getByText("Casey Lee")).toBeVisible();
+});
+
+test("group messages persist and members cannot create groups", async ({ page }) => {
+  await login(page, "advisor");
+  await expect(page.getByRole("link", { name: /create.*team/i })).toHaveCount(0);
+  await page.getByLabel(/Message Sonography Advisors/i).fill("Clinical review starts here.");
   await page.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByText("Clinical and engineering review starts here.")).toBeVisible();
+  await expect(page.getByText("Clinical review starts here.")).toBeVisible();
   await page.reload();
-  await expect(page.getByText("Clinical and engineering review starts here.")).toBeVisible();
+  await expect(page.getByText("Clinical review starts here.")).toBeVisible();
 });
 
-test("team owners manage rosters and admins oversee all teams", async ({ page }) => {
-  await login(page, "advisor", "/app/team/portable-sonography/channel/portable-sonography-general");
-  await expect(page.getByText("Manage team roster")).toHaveCount(0);
-  await page.getByRole("button", { name: "Log out" }).click();
+test("admin is in all groups, can direct message, and can start a group call", async ({ page }) => {
+  await login(page, "admin");
+  const navigation = page.getByRole("navigation", { name: "Workspace navigation" });
+  for (const name of ["Sonography Advisors", "Clinical Advisors", "Engineering", "Design & Prototypes", "University Partners", "IP & Legal"]) {
+    await expect(navigation.getByRole("link", { name })).toBeVisible();
+  }
+  await navigation.getByRole("link", { name: "Jordan Ellis" }).click();
+  await page.getByLabel(/Message Jordan Ellis/i).fill("Please review the latest advisor notes.");
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText("Please review the latest advisor notes.")).toBeVisible();
 
-  await login(page, "admin", "/admin/teams");
-  await expect(page.getByRole("heading", { name: "Cross-functional teams." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Portable Sonography" })).toBeVisible();
-  await page.getByRole("link", { name: "Open" }).click();
-  await expect(page.getByText("Manage team roster")).toBeVisible();
+  await page.goto("/app/group/sonography-advisors");
+  await page.getByRole("button", { name: "Start group call" }).click();
+  await expect(page.getByText(/call is live/i)).toBeVisible();
+  await page.getByRole("button", { name: "Log out" }).click();
+  await login(page, "advisor", "/app/group/sonography-advisors");
+  await page.getByRole("button", { name: "Join call" }).click();
+  await expect(page.getByText("Connected").first()).toBeVisible();
 });
 
 test("mobile navigation opens and follows anchor", async ({ page }) => {
@@ -125,9 +149,9 @@ test("the preview makes no backend or API requests", async ({ page }) => {
 
   await page.goto("/");
   await login(page, "advisor");
-  await expect(page.getByRole("heading", { name: /welcome to #general/i })).toBeVisible();
-  await page.goto("/app/directory");
-  await expect(page.getByRole("heading", { name: "Find a collaborator." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sonography Advisors", exact: true })).toBeVisible();
+  await page.goto("/app/direct/advisor-1");
+  await expect(page.getByRole("heading", { name: "Jordan Ellis" })).toBeVisible();
 
   expect(applicationRequests).toEqual([]);
 });

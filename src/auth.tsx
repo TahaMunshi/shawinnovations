@@ -1,13 +1,13 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { getPersona, type Persona } from "./data";
+import type { Persona } from "./data";
 
 const SESSION_KEY = "shaw-preview-user";
 
 export type Session = { userId: string; username: string; role: Persona["role"] };
 type AuthValue = {
   session: Session | null;
-  login: (userId: string) => void;
+  login: (member: Pick<Persona, "id" | "name" | "role">) => void;
   logout: () => void;
 };
 
@@ -15,9 +15,10 @@ const AuthContext = createContext<AuthValue | null>(null);
 
 function readSession(): Session | null {
   try {
-    const userId = sessionStorage.getItem(SESSION_KEY);
-    const persona = getPersona(userId ?? undefined);
-    return persona ? { userId: persona.id, username: persona.name, role: persona.role } : null;
+    const stored = sessionStorage.getItem(SESSION_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as Partial<Session>;
+    return parsed.userId && parsed.username && parsed.role ? parsed as Session : null;
   } catch {
     return null;
   }
@@ -28,11 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthValue>(
     () => ({
       session,
-      login(userId) {
-        const persona = getPersona(userId);
-        if (!persona) return;
-        const next = { userId: persona.id, username: persona.name, role: persona.role };
-        sessionStorage.setItem(SESSION_KEY, next.userId);
+      login(member) {
+        const next = { userId: member.id, username: member.name, role: member.role };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
         setSession(next);
       },
       logout() {
@@ -71,7 +70,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
 export function AdminRoute({ children }: { children: ReactNode }) {
   const { session } = useAuth();
-  if (!session) return <Navigate to="/login?returnTo=%2Fadmin%2Fteams" replace />;
+  if (!session) return <Navigate to="/login?returnTo=%2Fadmin" replace />;
   if (session.role !== "admin") return <Navigate to="/app" replace />;
   return children;
 }

@@ -27,14 +27,14 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { AdminRoute, ProtectedRoute, safeReturnTo, useAuth } from "./auth";
-import { getPersona, panels } from "./data";
+import { fixedGroups, type Persona } from "./data";
 import {
-  AdminTeamsPage,
-  ChatWorkspace,
-  CreateTeamPage,
-  DirectoryPage,
+  AdminPage,
+  DirectMessagePage,
+  GroupChatPage,
   WorkspaceHome,
 } from "./WorkspaceApp";
+import { useWorkspace } from "./workspace";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const SPLASH_KEY = "shaw-splash-seen";
@@ -107,7 +107,7 @@ function Splash() {
 function PreviewBanner() {
   return (
     <div className="preview-banner" role="status">
-      Public design preview · Browser-only sample session · No data is stored or submitted
+      Public design preview · Sample activity is stored only in this browser · Nothing is submitted
     </div>
   );
 }
@@ -163,7 +163,7 @@ function Header({ overlay = false }: { overlay?: boolean }) {
         <div className="header-actions">
           {session ? (
             <>
-              {session.role === "admin" && <Link className="text-link" to="/admin/teams">Admin</Link>}
+              {session.role === "admin" && <Link className="text-link" to="/admin">Admin</Link>}
               <Link className="button small" to="/app">Open workspace</Link>
               <button className="icon-button desktop-only" onClick={signOut} aria-label="Log out">
                 <LogOut aria-hidden="true" />
@@ -199,7 +199,7 @@ function Footer() {
     <footer>
       <div className="page footer-grid">
         <div><Brand /><p>Exploring better ways to collaborate on medical device innovation.</p></div>
-        <div><strong>Preview notice</strong><p>Privacy and permission controls shown here describe intended production behavior. This public SPA stores no project data.</p></div>
+        <div><strong>Preview notice</strong><p>Sample messages and access changes remain only in this browser. The permission controls shown here are not production authorization.</p></div>
       </div>
       <div className="footer-bottom">© {new Date().getFullYear()} Shaw Innovations · Design preview</div>
     </footer>
@@ -263,7 +263,7 @@ function HomePage() {
   const reduce = useReducedMotion();
   const audiences = [
     [Stethoscope, "Clinical advisors", "A dedicated community for sonography workflow insight and clinical feedback."],
-    [Users, "Project collaborators", "Member-created rooms that bring the right people together around a focused goal."],
+    [Users, "Project collaborators", "Admin-assigned groups bring the right approved people into each focused conversation."],
     [Wrench, "Engineering teams", "Product, mechanical, electrical, and industrial design conversations in one place."],
     [ShieldCheck, "Program administrators", "Team oversight and role-aware access represented as a frontend prototype."],
   ] as const;
@@ -285,7 +285,7 @@ function HomePage() {
           </h1>
           <p>
             An invitation-only community where sonographers, advisors, and engineers
-            can talk, form project teams, and move a medical device forward together.
+            can talk inside carefully assigned groups and move a medical device forward together.
           </p>
           <div className="button-row">
             <Link className="button" to="/login">Enter preview <ArrowRight aria-hidden="true" /></Link>
@@ -300,7 +300,7 @@ function HomePage() {
           <Reveal>
             <p className="eyebrow">Who it’s for</p>
             <h2>Every perspective in the device journey.</h2>
-            <p className="lead">Clinicians and engineers keep their own permanent communities, then form cross-functional project teams whenever a device challenge needs both perspectives.</p>
+            <p className="lead">Clinicians, engineers, researchers, and legal partners collaborate inside six private groups, with access approved and assigned by an administrator.</p>
           </Reveal>
           <Reveal className="media-card">
             <img src="/imagery/clinic-sonography.jpg" alt="" />
@@ -325,7 +325,7 @@ function HomePage() {
           <Reveal>
             <p className="eyebrow">Ecosystem</p>
             <h2>Focused rooms. Shared product progress.</h2>
-            <p className="lead">Permanent role communities support ongoing conversation, while member-created teams give each sonography initiative its own channels and roster.</p>
+            <p className="lead">Six focused groups keep sonography, clinical, engineering, prototype, university, and IP conversations clear and permission-aware.</p>
           </Reveal>
           <div className="bento">
             <Reveal className="media-card tall">
@@ -333,13 +333,13 @@ function HomePage() {
               <span className="media-chip">Hospital + clinical communities</span>
             </Reveal>
             <div className="bento-list">
-              {[...new Set(panels.map(({ community }) => community))].map((community, index) => (
-                <Reveal key={community} delay={(index % 3) * 0.08}>
+              {fixedGroups.map((group, index) => (
+                <Reveal key={group.id} delay={(index % 3) * 0.08}>
                   <article className="card compact">
                     <span className="icon-well small"><FileBox aria-hidden="true" /></span>
                     <div>
-                      <h3>{community}</h3>
-                      <p>{panels.filter((panel) => panel.community === community).length} panel concepts</p>
+                      <h3>{group.name}</h3>
+                      <p>{group.description}</p>
                     </div>
                   </article>
                 </Reveal>
@@ -355,8 +355,8 @@ function HomePage() {
             <p className="eyebrow">How it works</p>
               <h2>From role community to project room.</h2>
             <p className="lead">
-              Enter as an advisor, engineer, or admin; join conversations, find platform
-              members, and create a cross-functional team around a product challenge.
+              Apply for access, wait for admin approval and group assignment, then enter
+              the one private collaboration space intended for your role.
             </p>
           </Reveal>
           <Reveal className="media-card">
@@ -366,10 +366,10 @@ function HomePage() {
         </div>
         <div className="card-grid four">
           {[
-            ["01", "Join your community", "Advisors and engineers each have a permanent home."],
-            ["02", "Start a conversation", "Move between focused channels and post local demo messages."],
-            ["03", "Build a team", "Choose any platform members for a cross-functional project room."],
-            ["04", "Move together", "Keep product discussion, clinical feedback, and decisions connected."],
+            ["01", "Apply", "Complete onboarding with your professional details."],
+            ["02", "Get approved", "An administrator reviews and assigns your group."],
+            ["03", "Collaborate", "Talk only with members of your assigned private group."],
+            ["04", "Meet live", "Join a group call started by the administrator inside the chat."],
           ].map(([number, title, text], index) => (
             <Reveal key={title} delay={index * 0.09}>
               <article className="card">
@@ -404,19 +404,33 @@ function HomePage() {
 
 function LoginPage() {
   const { session, login } = useAuth();
+  const { members, submitRequest } = useWorkspace();
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signin" | "onboarding">("signin");
+  const [submitted, setSubmitted] = useState(false);
   const destination = safeReturnTo(params.get("returnTo"));
   if (session) return <Navigate to={destination} replace />;
 
-  const enter = (userId: string) => {
-    login(userId);
+  const enter = (member: Persona) => {
+    login(member);
     navigate(destination, { replace: true });
   };
 
-  const demoPeople = ["admin-1", "advisor-1", "engineer-1"]
-    .map((id) => getPersona(id))
-    .filter((person) => person !== undefined);
+  const apply = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    submitRequest({
+      name: String(data.get("name") ?? "").trim(),
+      email: String(data.get("email") ?? "").trim(),
+      title: String(data.get("title") ?? "").trim(),
+      organization: String(data.get("organization") ?? "").trim(),
+      role: String(data.get("role") ?? "advisor") as Persona["role"],
+      note: String(data.get("note") ?? "").trim(),
+    });
+    event.currentTarget.reset();
+    setSubmitted(true);
+  };
 
   return (
     <section className="auth-page page">
@@ -425,17 +439,40 @@ function LoginPage() {
         <span className="media-chip">Design preview only</span>
       </div>
       <div className="auth-stack">
-        <div className="auth-panel"><p className="eyebrow">Role-based preview</p><h1>Enter the collaboration workspace.</h1><p>Choose a demo role to see its communities and project teams. This browser-only preview is not real authentication or authorization.</p></div>
-        <div className="form-card role-entry">
-          <h2>Preview as</h2>
-          {demoPeople.map((person) => (
-            <button key={person.id} type="button" onClick={() => enter(person.id)}>
-              <span className="avatar" aria-hidden="true">{person.name.split(" ").map((part) => part[0]).slice(0, 2)}</span>
-              <span><strong>{person.name}</strong><small>{person.title} · {person.role}</small></span>
-              <ArrowRight aria-hidden="true" />
-            </button>
-          ))}
+        <div className="auth-panel"><p className="eyebrow">Private group access</p><h1>Enter the collaboration workspace.</h1><p>Approved members can only access groups assigned by the administrator. New members apply through onboarding before they can sign in.</p></div>
+        <div className="auth-tabs" role="tablist" aria-label="Access options">
+          <button className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")} role="tab" aria-selected={mode === "signin"}>Approved member</button>
+          <button className={mode === "onboarding" ? "active" : ""} onClick={() => setMode("onboarding")} role="tab" aria-selected={mode === "onboarding"}>Request access</button>
         </div>
+        {mode === "signin" ? (
+          <div className="form-card role-entry approved-entry">
+            <h2>Approved member preview</h2>
+            <p>Select a member to demonstrate their assigned access.</p>
+            <div>
+              {members.map((person) => (
+                <button key={person.id} type="button" onClick={() => enter(person)}>
+                  <span className="avatar" aria-hidden="true">{person.name.split(" ").map((part) => part[0]).slice(0, 2)}</span>
+                  <span><strong>{person.name}</strong><small>{person.title} · {person.role}</small></span>
+                  <ArrowRight aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <form className="form-card onboarding-form" onSubmit={apply}>
+            <h2>Member onboarding</h2>
+            {submitted && <p className="onboarding-success" role="status">Application submitted. An admin must approve it and assign a group.</p>}
+            <div className="form-grid">
+              <div className="field"><label htmlFor="apply-name">Full name</label><input id="apply-name" name="name" required /></div>
+              <div className="field"><label htmlFor="apply-email">Email</label><input id="apply-email" name="email" type="email" required /></div>
+              <div className="field"><label htmlFor="apply-title">Title or specialty</label><input id="apply-title" name="title" required /></div>
+              <div className="field"><label htmlFor="apply-organization">Organization</label><input id="apply-organization" name="organization" required /></div>
+            </div>
+            <div className="field"><label htmlFor="apply-role">Professional role</label><select id="apply-role" name="role"><option value="advisor">Advisor / sonographer</option><option value="engineer">Engineer / designer</option><option value="faculty">University faculty</option><option value="legal">IP / legal</option></select></div>
+            <div className="field"><label htmlFor="apply-note">How would you contribute?</label><textarea id="apply-note" name="note" rows={3} required /></div>
+            <button className="button" type="submit">Submit for approval</button>
+          </form>
+        )}
       </div>
     </section>
   );
@@ -485,16 +522,14 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/app" element={<ProtectedRoute><WorkspaceHome /></ProtectedRoute>} />
-          <Route path="/app/community/:spaceId/channel/:channelId" element={<ProtectedRoute><ChatWorkspace type="community" /></ProtectedRoute>} />
-          <Route path="/app/team/:spaceId/channel/:channelId" element={<ProtectedRoute><ChatWorkspace type="team" /></ProtectedRoute>} />
-          <Route path="/app/directory" element={<ProtectedRoute><DirectoryPage /></ProtectedRoute>} />
-          <Route path="/app/new-team" element={<ProtectedRoute><CreateTeamPage /></ProtectedRoute>} />
-          <Route path="/admin/teams" element={<AdminRoute><AdminTeamsPage /></AdminRoute>} />
+          <Route path="/app/group/:groupId" element={<ProtectedRoute><GroupChatPage /></ProtectedRoute>} />
+          <Route path="/app/direct/:memberId" element={<ProtectedRoute><DirectMessagePage /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="/dashboard" element={<Navigate to="/app" replace />} />
           <Route path="/sections/:slug" element={<Navigate to="/app" replace />} />
-          <Route path="/admin" element={<Navigate to="/admin/teams" replace />} />
-          <Route path="/admin/users/:id" element={<Navigate to="/admin/teams" replace />} />
-          <Route path="/admin/meetings" element={<Navigate to="/admin/teams" replace />} />
+          <Route path="/admin/teams" element={<Navigate to="/admin" replace />} />
+          <Route path="/admin/users/:id" element={<Navigate to="/admin" replace />} />
+          <Route path="/admin/meetings" element={<Navigate to="/admin" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppErrorBoundary>

@@ -6,41 +6,54 @@ import {
   type ReactNode,
 } from "react";
 import {
-  channels as seededChannels,
-  seededMessages,
-  seededTeams,
-  type Channel,
+  personas,
+  seededGroupMessages,
+  type GroupCall,
   type Message,
-  type ProjectTeam,
+  type OnboardingRequest,
+  type Persona,
 } from "./data";
 
-const STORAGE_KEY = "shaw-community-workspace-v1";
+const STORAGE_KEY = "shaw-fixed-groups-v1";
 
 type WorkspaceState = {
-  channels: Channel[];
-  teams: ProjectTeam[];
+  members: Persona[];
   messages: Message[];
+  requests: OnboardingRequest[];
+  calls: GroupCall[];
 };
 
-type CreateTeamInput = {
-  name: string;
-  description: string;
-  ownerId: string;
-  memberIds: string[];
-};
+type RequestInput = Omit<OnboardingRequest, "id" | "status" | "createdAt">;
 
 type WorkspaceValue = WorkspaceState & {
   sendMessage: (channelId: string, authorId: string, body: string) => void;
-  createTeam: (input: CreateTeamInput) => ProjectTeam;
-  updateTeamMembers: (teamId: string, memberIds: string[]) => void;
-  toggleTeamArchived: (teamId: string) => void;
+  submitRequest: (request: RequestInput) => void;
+  approveRequest: (requestId: string, groupId: string) => Persona | null;
+  addMemberToGroup: (memberId: string, groupId: string) => void;
+  removeMemberFromGroup: (memberId: string, groupId: string) => void;
+  startCall: (groupId: string, adminId: string) => void;
+  joinCall: (groupId: string, memberId: string) => void;
+  endCall: (groupId: string) => void;
   resetWorkspace: () => void;
 };
 
 const initialState = (): WorkspaceState => ({
-  channels: seededChannels,
-  teams: seededTeams,
-  messages: seededMessages,
+  members: personas,
+  messages: seededGroupMessages,
+  requests: [
+    {
+      id: "request-sample",
+      name: "Taylor Reed",
+      email: "taylor@example.test",
+      title: "Biomedical engineer",
+      organization: "Independent Product Lab",
+      role: "engineer",
+      note: "Interested in supporting prototype testing and design review.",
+      status: "pending",
+      createdAt: "2026-09-15T14:45:00.000Z",
+    },
+  ],
+  calls: [],
 });
 
 function readState(): WorkspaceState {
@@ -48,7 +61,7 @@ function readState(): WorkspaceState {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return initialState();
     const parsed = JSON.parse(stored) as Partial<WorkspaceState>;
-    if (!Array.isArray(parsed.channels) || !Array.isArray(parsed.teams) || !Array.isArray(parsed.messages)) {
+    if (!Array.isArray(parsed.members) || !Array.isArray(parsed.messages) || !Array.isArray(parsed.requests) || !Array.isArray(parsed.calls)) {
       return initialState();
     }
     return parsed as WorkspaceState;
@@ -59,14 +72,6 @@ function readState(): WorkspaceState {
 
 function uniqueId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "") || "new-team";
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null);
@@ -93,65 +98,90 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (!cleanBody) return;
       commit((current) => ({
         ...current,
-        messages: [
-          ...current.messages,
-          {
-            id: uniqueId("message"),
-            channelId,
-            authorId,
-            body: cleanBody,
-            createdAt: new Date().toISOString(),
-          },
-        ],
+        messages: [...current.messages, {
+          id: uniqueId("message"),
+          channelId,
+          authorId,
+          body: cleanBody,
+          createdAt: new Date().toISOString(),
+        }],
       }));
     },
-    createTeam(input) {
-      const id = `${slugify(input.name)}-${Date.now()}`;
-      const channelIds = [`${id}-general`, `${id}-clinical-design`];
-      const team: ProjectTeam = {
-        id,
-        name: input.name.trim(),
-        description: input.description.trim() || "A member-created cross-functional project team.",
-        ownerId: input.ownerId,
-        memberIds: [...new Set([input.ownerId, ...input.memberIds])],
-        channelIds,
+    submitRequest(request) {
+      commit((current) => ({
+        ...current,
+        requests: [...current.requests, {
+          ...request,
+          id: uniqueId("request"),
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        }],
+      }));
+    },
+    approveRequest(requestId, groupId) {
+      const request = state.requests.find((item) => item.id === requestId && item.status === "pending");
+      if (!request) return null;
+      const member: Persona = {
+        id: uniqueId("member"),
+        name: request.name,
+        email: request.email,
+        title: request.title,
+        organization: request.organization,
+        role: request.role,
+        panels: [],
+        groupIds: [groupId],
       };
-      const nextChannels: Channel[] = [
-        { id: channelIds[0], name: "general", description: `Team-wide discussion for ${team.name}.` },
-        { id: channelIds[1], name: "clinical-design", description: "Clinical feedback and engineering decisions in one room." },
-      ];
       commit((current) => ({
         ...current,
-        teams: [...current.teams, team],
-        channels: [...current.channels, ...nextChannels],
-        messages: [
-          ...current.messages,
-          {
-            id: uniqueId("message"),
-            channelId: channelIds[0],
-            authorId: input.ownerId,
-            body: `Created ${team.name} and opened this space for cross-functional collaboration.`,
-            createdAt: new Date().toISOString(),
-          },
+        members: [...current.members, member],
+        requests: current.requests.map((item) => item.id === requestId ? { ...item, status: "approved" } : item),
+      }));
+      return member;
+    },
+    addMemberToGroup(memberId, groupId) {
+      commit((current) => ({
+        ...current,
+        members: current.members.map((member) => member.id === memberId
+          ? { ...member, groupIds: [...new Set([...member.groupIds, groupId])] }
+          : member),
+      }));
+    },
+    removeMemberFromGroup(memberId, groupId) {
+      commit((current) => ({
+        ...current,
+        members: current.members.map((member) =>
+          member.id === memberId && member.role !== "admin"
+            ? { ...member, groupIds: member.groupIds.filter((id) => id !== groupId) }
+            : member),
+      }));
+    },
+    startCall(groupId, adminId) {
+      const now = new Date().toISOString();
+      commit((current) => ({
+        ...current,
+        calls: [
+          ...current.calls.filter((call) => call.groupId !== groupId),
+          { groupId, startedBy: adminId, startedAt: now, participantIds: [adminId] },
         ],
-      }));
-      return team;
-    },
-    updateTeamMembers(teamId, memberIds) {
-      commit((current) => ({
-        ...current,
-        teams: current.teams.map((team) => team.id === teamId
-          ? { ...team, memberIds: [...new Set([team.ownerId, ...memberIds])] }
-          : team),
+        messages: [...current.messages, {
+          id: uniqueId("call-message"),
+          channelId: `group-${groupId}`,
+          authorId: adminId,
+          body: "Started a private group call. Assigned members can join from the call panel above.",
+          createdAt: now,
+        }],
       }));
     },
-    toggleTeamArchived(teamId) {
+    joinCall(groupId, memberId) {
       commit((current) => ({
         ...current,
-        teams: current.teams.map((team) => team.id === teamId
-          ? { ...team, archived: !team.archived }
-          : team),
+        calls: current.calls.map((call) => call.groupId === groupId
+          ? { ...call, participantIds: [...new Set([...call.participantIds, memberId])] }
+          : call),
       }));
+    },
+    endCall(groupId) {
+      commit((current) => ({ ...current, calls: current.calls.filter((call) => call.groupId !== groupId) }));
     },
     resetWorkspace() {
       const next = initialState();
@@ -167,7 +197,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
 
-// Context and provider stay together so the preview state has one public entry point.
 // eslint-disable-next-line react-refresh/only-export-components
 export function useWorkspace() {
   const value = useContext(WorkspaceContext);
