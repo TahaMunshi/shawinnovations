@@ -562,7 +562,7 @@ function LoginPage() {
         <div className="auth-panel">
           <p className="eyebrow">Private community access</p>
           <h1>Enter the collaboration workspace.</h1>
-          <p>Every applicant e-signs an NDA before admin approval. Approved members join their assigned community tab; only the admin can send direct messages.</p>
+          <p>A refined space for approved collaborators. E-sign the NDA, join your community tab, and work with the people who matter to the device.</p>
         </div>
         <div className="auth-tabs" role="tablist" aria-label="Access options">
           <button className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")} role="tab" aria-selected={mode === "signin"}>Approved member</button>

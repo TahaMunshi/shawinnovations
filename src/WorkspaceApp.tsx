@@ -1,7 +1,9 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import {
+  Bell,
   Camera,
   Hash,
+  LayoutDashboard,
   LogOut,
   Mail,
   Menu,
@@ -20,6 +22,17 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "./auth";
 import { fixedGroups, type CollaborationGroup, type Persona } from "./data";
 import { useWorkspace } from "./workspace";
+
+type AdminSection =
+  | "overview"
+  | "approvals"
+  | "users"
+  | "communities"
+  | "invite"
+  | "add-member"
+  | "messages"
+  | "meetings"
+  | "settings";
 
 function initials(name: string) {
   return name.split(" ").map((part) => part[0]).slice(0, 2).join("");
@@ -206,7 +219,7 @@ export function GroupChatPage() {
     <WorkspaceFrame activeGroupId={group.id}>
       <main className="chat-panel fixed-chat-panel">
         <header className="chat-header">
-          <div><Hash /><span><strong>{group.name}</strong><small>Community chat · {group.description}</small></span></div>
+          <div><Hash /><span><strong>{group.name}</strong><small>Private community · Slack-style room for this tab only</small></span></div>
           {session?.role === "admin" && !call && (
             <button className="call-start" onClick={() => startCall(group.id, session.userId)}>
               <Video /> Start Zoom meeting
@@ -219,7 +232,7 @@ export function GroupChatPage() {
           <div className="channel-intro">
             <span><Hash /></span>
             <h1>{group.name}</h1>
-            <p>{group.description} Members of this tab can talk here together. Direct messages between members are not available.</p>
+            <p>{group.description} Members of this tab collaborate here in one shared feed — no peer-to-peer DMs, only community conversation.</p>
           </div>
           {groupMessages.map((message) => {
             const author = members.find((member) => member.id === message.authorId);
@@ -379,9 +392,12 @@ function AccessDenied() {
 }
 
 export function AdminPage() {
+  const { session, logout } = useAuth();
+  const navigate = useNavigate();
   const {
     members,
     requests,
+    calls,
     approveRequest,
     addMember,
     addMemberToGroup,
@@ -390,17 +406,25 @@ export function AdminPage() {
     reinstateMember,
     removeMember,
     resetWorkspace,
+    startCall,
+    endCall,
   } = useWorkspace();
+  const [section, setSection] = useState<AdminSection>("overview");
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
   const [addedNotice, setAddedNotice] = useState("");
+  const [mobileNav, setMobileNav] = useState(false);
+
   const pending = requests.filter((request) => request.status === "pending");
   const nonAdmin = members.filter((member) => member.role !== "admin");
+  const activeUsers = nonAdmin.filter((member) => member.status === "active");
+  const suspendedUsers = nonAdmin.filter((member) => member.status === "suspended");
   const filteredByTab = activeTab === "all"
     ? nonAdmin
     : nonAdmin.filter((member) => member.groupIds.includes(activeTab));
   const visibleMembers = filteredByTab.filter((member) =>
     `${member.name} ${member.email} ${member.title}`.toLowerCase().includes(query.toLowerCase()));
+  const liveMeetings = calls.length;
 
   const approve = (event: FormEvent<HTMLFormElement>, requestId: string) => {
     event.preventDefault();
@@ -437,77 +461,386 @@ export function AdminPage() {
     setActiveTab(created.groupIds[0] ?? "all");
     setAddedNotice(`${created.name} was added with in-person NDA on file.`);
     event.currentTarget.reset();
+    setSection("users");
   };
 
+  const go = (next: AdminSection) => {
+    setSection(next);
+    setMobileNav(false);
+  };
+
+  const signOut = () => {
+    logout();
+    navigate("/");
+  };
+
+  const navItems: { id: AdminSection; label: string; hint: string; icon: typeof Users; badge?: number }[] = [
+    { id: "overview", label: "Overview", hint: "Dashboard home", icon: LayoutDashboard },
+    { id: "approvals", label: "NDA Approvals", hint: "Review e-signed requests", icon: ShieldCheck, badge: pending.length },
+    { id: "users", label: "Users", hint: "Filter by community tab", icon: Users, badge: activeUsers.length },
+    { id: "communities", label: "Communities", hint: "Six collaboration tabs", icon: Hash },
+    { id: "invite", label: "Invitations", hint: "Email invite applicants", icon: Mail },
+    { id: "add-member", label: "Add Member", hint: "In-person NDA intake", icon: UserPlus },
+    { id: "messages", label: "Messages", hint: "Admin direct messages", icon: MessageCircle },
+    { id: "meetings", label: "Zoom Meetings", hint: "Start category Zoom", icon: Video, badge: liveMeetings || undefined },
+    { id: "settings", label: "Settings", hint: "Demo data & preferences", icon: Settings },
+  ];
+
+  const PendingApprovals = ({ compact = false }: { compact?: boolean }) => (
+    <section className={`admin-panel ${compact ? "compact-panel" : ""}`}>
+      <header>
+        <div>
+          <ShieldCheck />
+          <span>
+            <h2>Pending NDA onboarding</h2>
+            <p>Approve each e-signed applicant and place them in a community tab.</p>
+          </span>
+        </div>
+        <b>{pending.length}</b>
+      </header>
+      {!pending.length && <p className="admin-empty">No pending onboarding requests.</p>}
+      {pending.map((request) => {
+        const preferred = fixedGroups.find((group) => group.id === request.preferredTabId);
+        return (
+          <article className="approval-card" key={request.id}>
+            <div>
+              <span>{roleLabel(request.role)}</span>
+              <h3>{request.name}</h3>
+              <p>{request.title} · {request.organization}<br />{request.email}</p>
+              <small>{request.note}</small>
+              <div className="nda-preview">
+                <strong>NDA e-signature</strong>
+                <p>Signed as {request.ndaSignerName} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(request.ndaSignedAt))}</p>
+                <div className="nda-signature-display" aria-label="Applicant signature">
+                  {request.ndaSignature.startsWith("data:image")
+                    ? <img src={request.ndaSignature} alt="" />
+                    : <span className="nda-signature-text">{request.ndaSignature}</span>}
+                </div>
+                {preferred && <p>Preferred tab: {preferred.name}</p>}
+              </div>
+            </div>
+            <form onSubmit={(event) => approve(event, request.id)}>
+              <label>Assign community tab
+                <select name="group" defaultValue={request.preferredTabId}>
+                  {fixedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+                </select>
+              </label>
+              <button className="workspace-button" type="submit">Approve and add</button>
+            </form>
+          </article>
+        );
+      })}
+    </section>
+  );
+
+  const UsersDirectory = () => (
+    <section className="admin-panel member-management">
+      <header>
+        <div>
+          <Users />
+          <span>
+            <h2>Users by community tab</h2>
+            <p>Filter any tab to see its users. Suspend access or remove a profile completely.</p>
+          </span>
+        </div>
+      </header>
+
+      <div className="admin-tab-filters" role="tablist" aria-label="Filter users by community tab">
+        <button type="button" role="tab" aria-selected={activeTab === "all"} className={activeTab === "all" ? "active" : ""} onClick={() => setActiveTab("all")}>
+          All users <b>{nonAdmin.length}</b>
+        </button>
+        {fixedGroups.map((group) => {
+          const count = nonAdmin.filter((member) => member.groupIds.includes(group.id)).length;
+          return (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === group.id}
+              className={activeTab === group.id ? "active" : ""}
+              key={group.id}
+              onClick={() => setActiveTab(group.id)}
+            >
+              {group.name} <b>{count}</b>
+            </button>
+          );
+        })}
+      </div>
+
+      <label className="directory-search">
+        <Search />
+        <span className="sr-only">Search users</span>
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search users in this tab" />
+      </label>
+
+      <div className="member-admin-list">
+        {!visibleMembers.length && <p className="admin-empty">No users in this tab yet.</p>}
+        {visibleMembers.map((member) => (
+          <article key={member.id}>
+            <div className="member-admin-profile">
+              <Avatar member={member} />
+              <span>
+                <strong>{member.name}</strong>
+                <small>
+                  {member.email}<br />
+                  {roleLabel(member.role)} · {member.title}
+                  {member.status === "suspended" && <> · <em className="status-suspended">Suspended</em></>}
+                  {member.nda && <> · NDA {member.nda.method === "in-person" ? "in person" : "e-signed"}</>}
+                </small>
+              </span>
+            </div>
+            <div className="group-access-list">
+              {fixedGroups.map((group) => {
+                const assigned = member.groupIds.includes(group.id);
+                return (
+                  <button
+                    type="button"
+                    key={group.id}
+                    className={assigned ? "assigned" : ""}
+                    onClick={() => assigned ? removeMemberFromGroup(member.id, group.id) : addMemberToGroup(member.id, group.id)}
+                  >
+                    {assigned ? "✓ " : "+ "}{group.name}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="member-admin-actions">
+              <Link className="dm-link" to={`/app/direct/${member.id}`}><MessageCircle /> Direct message</Link>
+              {member.status === "active" ? (
+                <button type="button" className="status-action" onClick={() => suspendMember(member.id)}>Suspend access</button>
+              ) : (
+                <button type="button" className="status-action restore" onClick={() => reinstateMember(member.id)}>Reinstate</button>
+              )}
+              <button
+                type="button"
+                className="status-action danger"
+                onClick={() => {
+                  if (window.confirm(`Remove ${member.name} completely? This deletes their profile from the preview.`)) {
+                    removeMember(member.id);
+                  }
+                }}
+              >
+                <UserMinus /> Remove profile
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+
   return (
-    <WorkspaceFrame>
-      <main className="workspace-page admin-workspace">
-        <header className="workspace-page-heading">
+    <div className="admin-console">
+      <aside className={`admin-console-nav ${mobileNav ? "open" : ""}`}>
+        <div className="admin-console-brand">
+          <img src="/brand/logo-mark.png" alt="" />
           <div>
-            <span>Platform administration</span>
-            <h1>Users, NDA approvals, and community tabs.</h1>
-            <p>Review e-signed NDAs, add people who signed in person, filter by community tab, and manage access.</p>
+            <strong>Shaw Admin</strong>
+            <small>Platform console</small>
           </div>
-          <Link className="workspace-button secondary" to="/app"><Hash /> Open communities</Link>
+          <button className="admin-nav-close" onClick={() => setMobileNav(false)} aria-label="Close admin menu"><X /></button>
+        </div>
+        <nav className="admin-console-links" aria-label="Admin navigation">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={section === item.id ? "active" : ""}
+                onClick={() => go(item.id)}
+              >
+                <Icon />
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>{item.hint}</small>
+                </span>
+                {!!item.badge && <b>{item.badge}</b>}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="admin-console-footer">
+          <Link to="/app"><Hash /> Open workspace</Link>
+          <Link to="/">Public site</Link>
+          <button type="button" onClick={signOut}><LogOut /> Sign out</button>
+        </div>
+      </aside>
+      {mobileNav && <button className="admin-console-scrim" onClick={() => setMobileNav(false)} aria-label="Close admin menu" />}
+
+      <div className="admin-console-main">
+        <header className="admin-console-top">
+          <button type="button" className="admin-menu-toggle" onClick={() => setMobileNav(true)} aria-label="Open admin menu"><Menu /></button>
+          <div>
+            <p className="eyebrow">Administration</p>
+            <h1>{navItems.find((item) => item.id === section)?.label ?? "Admin Dashboard"}</h1>
+          </div>
+          <div className="admin-console-top-actions">
+            <button type="button" className="icon-chip" onClick={() => go("approvals")} aria-label="Pending NDA approvals">
+              <Bell />
+              {pending.length > 0 && <b>{pending.length}</b>}
+            </button>
+            <div className="admin-user-chip">
+              <span aria-hidden="true">{(session?.username ?? "A").slice(0, 1)}</span>
+              <div>
+                <strong>{session?.username}</strong>
+                <small>Platform admin</small>
+              </div>
+            </div>
+          </div>
         </header>
 
-        <section className="admin-summary">
-          <article><strong>6</strong><span>Community tabs</span></article>
-          <article><strong>{nonAdmin.filter((member) => member.status === "active").length}</strong><span>Active users</span></article>
-          <article><strong>{pending.length}</strong><span>Pending NDAs</span></article>
-          <article><strong>{nonAdmin.filter((member) => member.status === "suspended").length}</strong><span>Suspended</span></article>
-        </section>
+        <main className="admin-console-content">
+          {addedNotice && section !== "add-member" && (
+            <p className="onboarding-success" role="status">{addedNotice}</p>
+          )}
 
-        <div className="admin-columns">
-          <section className="admin-panel">
-            <header>
-              <div><UserPlus /><span><h2>Pending NDA onboarding</h2><p>Each applicant e-signed the NDA. Approve and place them in a community tab.</p></span></div>
-              <b>{pending.length}</b>
-            </header>
-            {!pending.length && <p className="admin-empty">No pending onboarding requests.</p>}
-            {pending.map((request) => {
-              const preferred = fixedGroups.find((group) => group.id === request.preferredTabId);
-              return (
-                <article className="approval-card" key={request.id}>
-                  <div>
-                    <span>{roleLabel(request.role)}</span>
-                    <h3>{request.name}</h3>
-                    <p>{request.title} · {request.organization}<br />{request.email}</p>
-                    <small>{request.note}</small>
-                    <div className="nda-preview">
-                      <strong>NDA e-signature</strong>
-                      <p>Signed as {request.ndaSignerName} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(request.ndaSignedAt))}</p>
-                      <div className="nda-signature-display" aria-label="Applicant signature">
-                        {request.ndaSignature.startsWith("data:image")
-                          ? <img src={request.ndaSignature} alt="" />
-                          : <span className="nda-signature-text">{request.ndaSignature}</span>}
-                      </div>
-                      {preferred && <p>Preferred tab: {preferred.name}</p>}
+          {section === "overview" && (
+            <>
+              <header className="admin-console-intro">
+                <div>
+                  <h2>Admin Dashboard</h2>
+                  <p>Manage users, NDA approvals, community tabs, invitations, direct messages, and Zoom meetings.</p>
+                </div>
+              </header>
+
+              <section className="admin-stat-grid" aria-label="Platform metrics">
+                <button type="button" className="admin-stat-card" onClick={() => go("users")}>
+                  <span>Total users</span>
+                  <strong>{nonAdmin.length}</strong>
+                  <small>{activeUsers.length} active · tap to manage</small>
+                </button>
+                <button type="button" className="admin-stat-card" onClick={() => go("approvals")}>
+                  <span>Pending NDAs</span>
+                  <strong>{pending.length}</strong>
+                  <small>Awaiting admin approval</small>
+                </button>
+                <button type="button" className="admin-stat-card" onClick={() => go("communities")}>
+                  <span>Communities</span>
+                  <strong>6</strong>
+                  <small>Sonography → IP & Legal</small>
+                </button>
+                <button type="button" className="admin-stat-card" onClick={() => go("users")}>
+                  <span>Suspended</span>
+                  <strong>{suspendedUsers.length}</strong>
+                  <small>Access paused</small>
+                </button>
+                <button type="button" className="admin-stat-card accent" onClick={() => go("meetings")}>
+                  <span>Live Zoom</span>
+                  <strong>{liveMeetings}</strong>
+                  <small>Active community meetings</small>
+                </button>
+              </section>
+
+              <div className="admin-overview-grid">
+                <PendingApprovals compact />
+                <section className="admin-panel">
+                  <header>
+                    <div>
+                      <LayoutDashboard />
+                      <span>
+                        <h2>Quick access</h2>
+                        <p>Jump to every admin tool — same idea as a full platform console.</p>
+                      </span>
                     </div>
+                  </header>
+                  <div className="admin-quick-grid">
+                    {navItems.filter((item) => item.id !== "overview").map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button key={item.id} type="button" onClick={() => go(item.id)}>
+                          <Icon />
+                          <span>
+                            <strong>{item.label}</strong>
+                            <small>{item.hint}</small>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <form onSubmit={(event) => approve(event, request.id)}>
-                    <label>Assign community tab
-                      <select name="group" defaultValue={request.preferredTabId}>
-                        {fixedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-                      </select>
-                    </label>
-                    <button className="workspace-button" type="submit">Approve and add</button>
-                  </form>
-                </article>
-              );
-            })}
-          </section>
+                </section>
+              </div>
+            </>
+          )}
 
-          <div className="admin-side-stack">
+          {section === "approvals" && <PendingApprovals />}
+
+          {section === "users" && <UsersDirectory />}
+
+          {section === "communities" && (
+            <section className="admin-panel">
+              <header>
+                <div>
+                  <Hash />
+                  <span>
+                    <h2>Community tabs</h2>
+                    <p>Each tab is a Slack-style room. Open a community to chat or start Zoom.</p>
+                  </span>
+                </div>
+              </header>
+              <div className="admin-community-grid">
+                {fixedGroups.map((group) => {
+                  const count = nonAdmin.filter((member) => member.groupIds.includes(group.id)).length;
+                  const live = calls.some((call) => call.groupId === group.id);
+                  return (
+                    <article key={group.id}>
+                      <span className="space-mark">{group.shortName}</span>
+                      <div>
+                        <h3>{group.name}</h3>
+                        <p>{group.description}</p>
+                        <small>{count} users{live ? " · Zoom live" : ""}</small>
+                      </div>
+                      <div className="admin-community-actions">
+                        <Link className="workspace-button secondary" to={`/app/group/${group.id}`}>Open chat</Link>
+                        <button
+                          type="button"
+                          className="workspace-button"
+                          onClick={() => {
+                            if (!session) return;
+                            if (live) endCall(group.id);
+                            else startCall(group.id, session.userId);
+                          }}
+                        >
+                          <Video /> {live ? "End Zoom" : "Start Zoom"}
+                        </button>
+                        <button type="button" className="status-action" onClick={() => { setActiveTab(group.id); go("users"); }}>
+                          View users
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {section === "invite" && (
             <form className="admin-panel invite-panel" onSubmit={invite}>
-              <header><div><Mail /><span><h2>Email invitation</h2><p>Invite someone to complete onboarding and e-sign the NDA.</p></span></div></header>
+              <header>
+                <div>
+                  <Mail />
+                  <span>
+                    <h2>Email invitation</h2>
+                    <p>Invite someone to complete onboarding and e-sign the NDA.</p>
+                  </span>
+                </div>
+              </header>
               <label>Email address<input name="email" type="email" required placeholder="new.member@example.com" /></label>
               <label>Suggested community tab<select name="group">{fixedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
               <button className="workspace-button" type="submit"><Mail /> Prepare email invite</button>
             </form>
+          )}
 
+          {section === "add-member" && (
             <form className="admin-panel invite-panel" onSubmit={createMember}>
-              <header><div><UserPlus /><span><h2>Add member directly</h2><p>For people who signed the NDA in person. Creates an active profile immediately.</p></span></div></header>
+              <header>
+                <div>
+                  <UserPlus />
+                  <span>
+                    <h2>Add member directly</h2>
+                    <p>For people who signed the NDA in person. Creates an active profile immediately.</p>
+                  </span>
+                </div>
+              </header>
               {addedNotice && <p className="onboarding-success" role="status">{addedNotice}</p>}
               <label>Full name<input name="name" required /></label>
               <label>Email<input name="email" type="email" required /></label>
@@ -524,97 +857,95 @@ export function AdminPage() {
               <label>Community tab<select name="group">{fixedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
               <button className="workspace-button" type="submit">Add with in-person NDA</button>
             </form>
-          </div>
-        </div>
+          )}
 
-        <section className="admin-panel member-management">
-          <header>
-            <div><Users /><span><h2>Users by community tab</h2><p>Filter any tab to see its users. Suspend access or remove a profile completely.</p></span></div>
-          </header>
-
-          <div className="admin-tab-filters" role="tablist" aria-label="Filter users by community tab">
-            <button type="button" role="tab" aria-selected={activeTab === "all"} className={activeTab === "all" ? "active" : ""} onClick={() => setActiveTab("all")}>
-              All users <b>{nonAdmin.length}</b>
-            </button>
-            {fixedGroups.map((group) => {
-              const count = nonAdmin.filter((member) => member.groupIds.includes(group.id)).length;
-              return (
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === group.id}
-                  className={activeTab === group.id ? "active" : ""}
-                  key={group.id}
-                  onClick={() => setActiveTab(group.id)}
-                >
-                  {group.name} <b>{count}</b>
-                </button>
-              );
-            })}
-          </div>
-
-          <label className="directory-search">
-            <Search />
-            <span className="sr-only">Search users</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search users in this tab" />
-          </label>
-
-          <div className="member-admin-list">
-            {!visibleMembers.length && <p className="admin-empty">No users in this tab yet.</p>}
-            {visibleMembers.map((member) => (
-              <article key={member.id}>
-                <div className="member-admin-profile">
-                  <Avatar member={member} />
+          {section === "messages" && (
+            <section className="admin-panel">
+              <header>
+                <div>
+                  <MessageCircle />
                   <span>
-                    <strong>{member.name}</strong>
-                    <small>
-                      {member.email}<br />
-                      {roleLabel(member.role)} · {member.title}
-                      {member.status === "suspended" && <> · <em className="status-suspended">Suspended</em></>}
-                      {member.nda && <> · NDA {member.nda.method === "in-person" ? "in person" : "e-signed"}</>}
-                    </small>
+                    <h2>Direct messages</h2>
+                    <p>Only the admin can DM individuals. Members cannot message each other.</p>
                   </span>
                 </div>
-                <div className="group-access-list">
-                  {fixedGroups.map((group) => {
-                    const assigned = member.groupIds.includes(group.id);
-                    return (
-                      <button
-                        type="button"
-                        key={group.id}
-                        className={assigned ? "assigned" : ""}
-                        onClick={() => assigned ? removeMemberFromGroup(member.id, group.id) : addMemberToGroup(member.id, group.id)}
-                      >
-                        {assigned ? "✓ " : "+ "}{group.name}
-                      </button>
-                    );
-                  })}
+              </header>
+              <div className="admin-message-directory">
+                {activeUsers.map((member) => (
+                  <Link key={member.id} to={`/app/direct/${member.id}`}>
+                    <Avatar member={member} />
+                    <span>
+                      <strong>{member.name}</strong>
+                      <small>{member.title} · {roleLabel(member.role)}</small>
+                    </span>
+                    <MessageCircle />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {section === "meetings" && (
+            <section className="admin-panel">
+              <header>
+                <div>
+                  <Video />
+                  <span>
+                    <h2>Zoom by community</h2>
+                    <p>Start a portal Zoom meeting inside any category. Assigned members can join from chat.</p>
+                  </span>
                 </div>
-                <div className="member-admin-actions">
-                  <Link className="dm-link" to={`/app/direct/${member.id}`}><MessageCircle /> Direct message</Link>
-                  {member.status === "active" ? (
-                    <button type="button" className="status-action" onClick={() => suspendMember(member.id)}>Suspend access</button>
-                  ) : (
-                    <button type="button" className="status-action restore" onClick={() => reinstateMember(member.id)}>Reinstate</button>
-                  )}
-                  <button
-                    type="button"
-                    className="status-action danger"
-                    onClick={() => {
-                      if (window.confirm(`Remove ${member.name} completely? This deletes their profile from the preview.`)) {
-                        removeMember(member.id);
-                      }
-                    }}
-                  >
-                    <UserMinus /> Remove profile
-                  </button>
+              </header>
+              <div className="admin-community-grid">
+                {fixedGroups.map((group) => {
+                  const live = calls.some((call) => call.groupId === group.id);
+                  return (
+                    <article key={group.id}>
+                      <span className="space-mark">{group.shortName}</span>
+                      <div>
+                        <h3>{group.name}</h3>
+                        <p>{live ? "Meeting is live in this community." : "No active Zoom meeting."}</p>
+                      </div>
+                      <div className="admin-community-actions">
+                        <button
+                          type="button"
+                          className="workspace-button"
+                          onClick={() => {
+                            if (!session) return;
+                            if (live) endCall(group.id);
+                            else startCall(group.id, session.userId);
+                          }}
+                        >
+                          <Video /> {live ? "End Zoom" : "Start Zoom"}
+                        </button>
+                        <Link className="workspace-button secondary" to={`/app/group/${group.id}`}>Open community</Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {section === "settings" && (
+            <section className="admin-panel">
+              <header>
+                <div>
+                  <Settings />
+                  <span>
+                    <h2>Admin preferences</h2>
+                    <p>This preview stores demo activity in your browser only.</p>
+                  </span>
                 </div>
-              </article>
-            ))}
-          </div>
-        </section>
-        <button className="reset-link" type="button" onClick={resetWorkspace}>Reset all local demo data</button>
-      </main>
-    </WorkspaceFrame>
+              </header>
+              <div className="admin-settings-block">
+                <p>Reset clears members you added, NDA requests, messages, and Zoom state, and restores the seeded demo roster.</p>
+                <button className="workspace-button" type="button" onClick={resetWorkspace}>Reset all local demo data</button>
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
