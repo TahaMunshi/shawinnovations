@@ -17,6 +17,11 @@ async function login(
   await page.getByRole("button", { name: new RegExp(roleNames[role], "i") }).click();
 }
 
+async function signNda(page: import("@playwright/test").Page, name: string) {
+  await page.getByLabel("Type your full legal name").fill(name);
+  await page.getByRole("button", { name: "Use typed name as signature" }).click();
+}
+
 test("public routes and role-based preview entry render", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /exclusive collaboration/i })).toBeVisible();
@@ -39,7 +44,7 @@ test("protected workspace deep link returns correctly and logout clears session"
   await expect(page).toHaveURL(/\/login\?returnTo=/);
 });
 
-test("members see only groups assigned by the admin", async ({ page }) => {
+test("members see only communities assigned by the admin", async ({ page }) => {
   await login(page, "advisor");
   const navigation = page.getByRole("navigation", { name: "Workspace navigation" });
   await expect(navigation.getByRole("link", { name: "Sonography Advisors" })).toBeVisible();
@@ -53,7 +58,7 @@ test("members see only groups assigned by the admin", async ({ page }) => {
   await expect(navigation.getByRole("link", { name: "Sonography Advisors" })).toHaveCount(0);
 });
 
-test("onboarding requests require admin approval and group assignment", async ({ page }) => {
+test("NDA onboarding requires admin approval and community assignment", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("tab", { name: "Request access" }).click();
   await page.getByLabel("Full name").fill("Casey Lee");
@@ -61,22 +66,27 @@ test("onboarding requests require admin approval and group assignment", async ({
   await page.getByLabel("Title or specialty").fill("Product engineer");
   await page.getByLabel("Organization").fill("Device Lab");
   await page.getByLabel("Professional role").selectOption("engineer");
+  await page.getByLabel("Preferred community tab").selectOption("design-prototypes");
   await page.getByLabel("How would you contribute?").fill("Prototype and testing support.");
-  await page.getByRole("button", { name: "Submit for approval" }).click();
-  await expect(page.getByText(/application submitted/i)).toBeVisible();
+  await signNda(page, "Casey Lee");
+  await page.getByRole("button", { name: "Submit NDA for approval" }).click();
+  await expect(page.getByText(/nda submitted/i)).toBeVisible();
 
   await page.getByRole("tab", { name: "Approved member" }).click();
   await page.getByRole("button", { name: /Shaw Preview Admin/i }).click();
   await page.goto("/admin");
   const request = page.locator(".approval-card").filter({ hasText: "Casey Lee" });
-  await request.getByLabel("Assign group").selectOption("design-prototypes");
+  await expect(request.getByText(/nda e-signature/i)).toBeVisible();
+  await request.getByLabel("Assign community tab").selectOption("design-prototypes");
   await request.getByRole("button", { name: "Approve and add" }).click();
+  await page.getByRole("tab", { name: /Design & Prototypes/i }).click();
   await expect(page.locator(".member-admin-list").getByText("Casey Lee")).toBeVisible();
 });
 
-test("group messages persist and members cannot create groups", async ({ page }) => {
+test("community messages persist and members have no peer DMs", async ({ page }) => {
   await login(page, "advisor");
   await expect(page.getByRole("link", { name: /create.*team/i })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Workspace navigation" }).getByRole("link", { name: "Morgan Chen" })).toHaveCount(0);
   await page.getByLabel(/Message Sonography Advisors/i).fill("Clinical review starts here.");
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Clinical review starts here.")).toBeVisible();
@@ -84,7 +94,7 @@ test("group messages persist and members cannot create groups", async ({ page })
   await expect(page.getByText("Clinical review starts here.")).toBeVisible();
 });
 
-test("admin is in all groups, can direct message, and can start a group call", async ({ page }) => {
+test("admin can DM, filter tabs, and start Zoom in a community", async ({ page }) => {
   await login(page, "admin");
   const navigation = page.getByRole("navigation", { name: "Workspace navigation" });
   for (const name of ["Sonography Advisors", "Clinical Advisors", "Engineering", "Design & Prototypes", "University Partners", "IP & Legal"]) {
@@ -95,13 +105,39 @@ test("admin is in all groups, can direct message, and can start a group call", a
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Please review the latest advisor notes.")).toBeVisible();
 
+  await page.goto("/admin");
+  await page.getByRole("tab", { name: /Sonography Advisors/i }).click();
+  await expect(page.locator(".member-admin-list").getByText("Jordan Ellis")).toBeVisible();
+  await expect(page.locator(".member-admin-list").getByText("Morgan Chen")).toHaveCount(0);
+
   await page.goto("/app/group/sonography-advisors");
-  await page.getByRole("button", { name: "Start group call" }).click();
-  await expect(page.getByText(/call is live/i)).toBeVisible();
+  await page.getByRole("button", { name: "Start Zoom meeting" }).click();
+  await expect(page.getByText(/zoom meeting is live/i)).toBeVisible();
   await page.getByRole("button", { name: "Log out" }).click();
   await login(page, "advisor", "/app/group/sonography-advisors");
-  await page.getByRole("button", { name: "Join call" }).click();
+  await page.getByRole("button", { name: "Join Zoom" }).click();
   await expect(page.getByText("Connected").first()).toBeVisible();
+});
+
+test("admin can add, suspend, and remove users", async ({ page }) => {
+  await login(page, "admin", "/admin");
+  const addForm = page.locator("form.admin-panel").filter({ hasText: "Add member directly" });
+  await addForm.getByLabel("Full name").fill("Riley Quinn");
+  await addForm.getByLabel("Email").fill("riley@example.test");
+  await addForm.getByLabel("Title").fill("Clinical specialist");
+  await addForm.getByLabel("Organization").fill("Sample Clinic");
+  await addForm.getByLabel("Professional role").selectOption("advisor");
+  await addForm.getByLabel("Community tab").selectOption("clinical-advisors");
+  await addForm.getByRole("button", { name: "Add with in-person NDA" }).click();
+  await expect(page.getByText(/riley quinn was added/i)).toBeVisible();
+
+  await page.getByRole("tab", { name: /Clinical Advisors/i }).click();
+  const card = page.locator(".member-admin-list > article").filter({ hasText: "Riley Quinn" });
+  await card.getByRole("button", { name: "Suspend access" }).click();
+  await expect(card.getByText(/Suspended/i)).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await card.getByRole("button", { name: "Remove profile" }).click();
+  await expect(page.locator(".member-admin-list").getByText("Riley Quinn")).toHaveCount(0);
 });
 
 test("mobile navigation opens and follows anchor", async ({ page }) => {
@@ -151,7 +187,7 @@ test("the preview makes no backend or API requests", async ({ page }) => {
   await login(page, "advisor");
   await expect(page.getByRole("heading", { name: "Sonography Advisors", exact: true })).toBeVisible();
   await page.goto("/app/direct/advisor-1");
-  await expect(page.getByRole("heading", { name: "Jordan Ellis" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Platform admin" })).toBeVisible();
 
   expect(applicationRequests).toEqual([]);
 });

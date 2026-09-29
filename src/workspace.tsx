@@ -14,7 +14,7 @@ import {
   type Persona,
 } from "./data";
 
-const STORAGE_KEY = "shaw-fixed-groups-v1";
+const STORAGE_KEY = "shaw-community-tabs-v2";
 
 type WorkspaceState = {
   members: Persona[];
@@ -25,12 +25,28 @@ type WorkspaceState = {
 
 type RequestInput = Omit<OnboardingRequest, "id" | "status" | "createdAt">;
 
+type AddMemberInput = {
+  name: string;
+  email: string;
+  title: string;
+  organization: string;
+  role: Persona["role"];
+  groupId: string;
+  ndaMethod: "esign" | "in-person";
+  ndaSignature?: string;
+  ndaSignerName?: string;
+};
+
 type WorkspaceValue = WorkspaceState & {
   sendMessage: (channelId: string, authorId: string, body: string) => void;
   submitRequest: (request: RequestInput) => void;
   approveRequest: (requestId: string, groupId: string) => Persona | null;
+  addMember: (input: AddMemberInput) => Persona;
   addMemberToGroup: (memberId: string, groupId: string) => void;
   removeMemberFromGroup: (memberId: string, groupId: string) => void;
+  suspendMember: (memberId: string) => void;
+  reinstateMember: (memberId: string) => void;
+  removeMember: (memberId: string) => void;
   startCall: (groupId: string, adminId: string) => void;
   joinCall: (groupId: string, memberId: string) => void;
   endCall: (groupId: string) => void;
@@ -49,12 +65,25 @@ const initialState = (): WorkspaceState => ({
       organization: "Independent Product Lab",
       role: "engineer",
       note: "Interested in supporting prototype testing and design review.",
+      preferredTabId: "engineering",
+      ndaSignature: "Taylor Reed",
+      ndaSignerName: "Taylor Reed",
+      ndaSignedAt: "2026-09-15T14:40:00.000Z",
       status: "pending",
       createdAt: "2026-09-15T14:45:00.000Z",
     },
   ],
   calls: [],
 });
+
+function normalizeMember(member: Persona): Persona {
+  return {
+    ...member,
+    status: member.status ?? "active",
+    nda: member.nda === undefined ? null : member.nda,
+    groupIds: Array.isArray(member.groupIds) ? member.groupIds : [],
+  };
+}
 
 function readState(): WorkspaceState {
   try {
@@ -64,7 +93,12 @@ function readState(): WorkspaceState {
     if (!Array.isArray(parsed.members) || !Array.isArray(parsed.messages) || !Array.isArray(parsed.requests) || !Array.isArray(parsed.calls)) {
       return initialState();
     }
-    return parsed as WorkspaceState;
+    return {
+      members: parsed.members.map((member) => normalizeMember(member as Persona)),
+      messages: parsed.messages,
+      requests: parsed.requests as OnboardingRequest[],
+      calls: parsed.calls,
+    };
   } catch {
     return initialState();
   }
@@ -96,6 +130,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     sendMessage(channelId, authorId, body) {
       const cleanBody = body.trim();
       if (!cleanBody) return;
+      const author = state.members.find((member) => member.id === authorId);
+      if (author && author.status === "suspended") return;
       commit((current) => ({
         ...current,
         messages: [...current.messages, {
@@ -130,11 +166,42 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         role: request.role,
         panels: [],
         groupIds: [groupId],
+        status: "active",
+        nda: {
+          method: "esign",
+          signedAt: request.ndaSignedAt,
+          signature: request.ndaSignature,
+          signerName: request.ndaSignerName,
+        },
       };
       commit((current) => ({
         ...current,
         members: [...current.members, member],
         requests: current.requests.map((item) => item.id === requestId ? { ...item, status: "approved" } : item),
+      }));
+      return member;
+    },
+    addMember(input) {
+      const member: Persona = {
+        id: uniqueId("member"),
+        name: input.name,
+        email: input.email,
+        title: input.title,
+        organization: input.organization,
+        role: input.role,
+        panels: [],
+        groupIds: [input.groupId],
+        status: "active",
+        nda: {
+          method: input.ndaMethod,
+          signedAt: new Date().toISOString(),
+          signature: input.ndaSignature,
+          signerName: input.ndaSignerName ?? input.name,
+        },
+      };
+      commit((current) => ({
+        ...current,
+        members: [...current.members, member],
       }));
       return member;
     },
@@ -155,6 +222,37 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             : member),
       }));
     },
+    suspendMember(memberId) {
+      commit((current) => ({
+        ...current,
+        members: current.members.map((member) =>
+          member.id === memberId && member.role !== "admin"
+            ? { ...member, status: "suspended" }
+            : member),
+      }));
+    },
+    reinstateMember(memberId) {
+      commit((current) => ({
+        ...current,
+        members: current.members.map((member) =>
+          member.id === memberId ? { ...member, status: "active" } : member),
+      }));
+    },
+    removeMember(memberId) {
+      commit((current) => ({
+        ...current,
+        members: current.members.filter((member) => member.id !== memberId || member.role === "admin"),
+        messages: current.messages.filter((message) => {
+          if (message.authorId === memberId) return false;
+          if (message.channelId === `direct-${memberId}`) return false;
+          return true;
+        }),
+        calls: current.calls.map((call) => ({
+          ...call,
+          participantIds: call.participantIds.filter((id) => id !== memberId),
+        })),
+      }));
+    },
     startCall(groupId, adminId) {
       const now = new Date().toISOString();
       commit((current) => ({
@@ -167,12 +265,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           id: uniqueId("call-message"),
           channelId: `group-${groupId}`,
           authorId: adminId,
-          body: "Started a private group call. Assigned members can join from the call panel above.",
+          body: "Started a Zoom meeting for this community. Assigned members can join from the meeting panel above.",
           createdAt: now,
         }],
       }));
     },
     joinCall(groupId, memberId) {
+      const member = state.members.find((item) => item.id === memberId);
+      if (member?.status === "suspended") return;
       commit((current) => ({
         ...current,
         calls: current.calls.map((call) => call.groupId === groupId

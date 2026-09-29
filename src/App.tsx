@@ -1,8 +1,11 @@
 import {
   Component,
   useEffect,
+  useRef,
   useState,
   type ErrorInfo,
+  type FormEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import {
@@ -300,7 +303,7 @@ function HomePage() {
           <Reveal>
             <p className="eyebrow">Who it’s for</p>
             <h2>Every perspective in the device journey.</h2>
-            <p className="lead">Clinicians, engineers, researchers, and legal partners collaborate inside six private groups, with access approved and assigned by an administrator.</p>
+            <p className="lead">Clinicians, engineers, researchers, and legal partners collaborate inside six community tabs after NDA e-sign and administrator approval.</p>
           </Reveal>
           <Reveal className="media-card">
             <img src="/imagery/clinic-sonography.jpg" alt="" />
@@ -325,7 +328,7 @@ function HomePage() {
           <Reveal>
             <p className="eyebrow">Ecosystem</p>
             <h2>Focused rooms. Shared product progress.</h2>
-            <p className="lead">Six focused groups keep sonography, clinical, engineering, prototype, university, and IP conversations clear and permission-aware.</p>
+            <p className="lead">Six community tabs keep sonography, clinical, engineering, prototype, university, and IP conversations clear—Slack-style community chat, with admin-only direct messages.</p>
           </Reveal>
           <div className="bento">
             <Reveal className="media-card tall">
@@ -353,10 +356,10 @@ function HomePage() {
         <div className="split">
           <Reveal>
             <p className="eyebrow">How it works</p>
-              <h2>From role community to project room.</h2>
+              <h2>From NDA to community tab.</h2>
             <p className="lead">
-              Apply for access, wait for admin approval and group assignment, then enter
-              the one private collaboration space intended for your role.
+              Complete onboarding with an e-signed NDA, wait for admin approval and tab
+              assignment, then collaborate with others in your community.
             </p>
           </Reveal>
           <Reveal className="media-card">
@@ -366,10 +369,10 @@ function HomePage() {
         </div>
         <div className="card-grid four">
           {[
-            ["01", "Apply", "Complete onboarding with your professional details."],
-            ["02", "Get approved", "An administrator reviews and assigns your group."],
-            ["03", "Collaborate", "Talk only with members of your assigned private group."],
-            ["04", "Meet live", "Join a group call started by the administrator inside the chat."],
+            ["01", "Apply + e-sign", "Complete onboarding and e-sign the NDA for any module."],
+            ["02", "Get approved", "An administrator reviews the NDA and assigns your community tab."],
+            ["03", "Collaborate", "Talk with others in your tab’s community chat—no peer DMs."],
+            ["04", "Meet on Zoom", "Admin can start a Zoom meeting for that community from the portal."],
           ].map(([number, title, text], index) => (
             <Reveal key={title} delay={index * 0.09}>
               <article className="card">
@@ -402,6 +405,111 @@ function HomePage() {
   );
 }
 
+function SignaturePad({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const prepare = () => {
+      const ratio = window.devicePixelRatio || 1;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const previous = canvas.toDataURL("image/png");
+      canvas.width = Math.max(1, Math.floor(width * ratio));
+      canvas.height = Math.max(1, Math.floor(height * ratio));
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.lineWidth = 2;
+      context.lineCap = "round";
+      context.strokeStyle = "#1d3b5c";
+      if (value.startsWith("data:image")) {
+        const image = new Image();
+        image.onload = () => context.drawImage(image, 0, 0, width, height);
+        image.src = value || previous;
+      }
+    };
+    prepare();
+    window.addEventListener("resize", prepare);
+    return () => window.removeEventListener("resize", prepare);
+    // Intentionally run once on mount; drawing updates value without remounting.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (value) return;
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  }, [value]);
+
+  const point = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const bounds = canvas.getBoundingClientRect();
+    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+  };
+
+  const start = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    drawing.current = true;
+    canvas.setPointerCapture(event.pointerId);
+    const { x, y } = point(event);
+    context.beginPath();
+    context.moveTo(x, y);
+  };
+
+  const move = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current) return;
+    const context = canvasRef.current?.getContext("2d");
+    if (!context) return;
+    const { x, y } = point(event);
+    context.lineTo(x, y);
+    context.stroke();
+  };
+
+  const end = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    onChange(canvas.toDataURL("image/png"));
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    onChange("");
+  };
+
+  return (
+    <div className="signature-pad">
+      <canvas
+        ref={canvasRef}
+        aria-label="NDA signature pad"
+        onPointerDown={start}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerCancel={end}
+      />
+      <button type="button" className="signature-clear" onClick={clear}>Clear signature</button>
+    </div>
+  );
+}
+
 function LoginPage() {
   const { session, login } = useAuth();
   const { members, submitRequest } = useWorkspace();
@@ -409,16 +517,20 @@ function LoginPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "onboarding">("signin");
   const [submitted, setSubmitted] = useState(false);
+  const [signature, setSignature] = useState("");
+  const [signerName, setSignerName] = useState("");
   const destination = safeReturnTo(params.get("returnTo"));
   if (session) return <Navigate to={destination} replace />;
 
   const enter = (member: Persona) => {
+    if (member.status === "suspended") return;
     login(member);
     navigate(destination, { replace: true });
   };
 
-  const apply = (event: React.FormEvent<HTMLFormElement>) => {
+  const apply = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!signature.trim() || !signerName.trim()) return;
     const data = new FormData(event.currentTarget);
     submitRequest({
       name: String(data.get("name") ?? "").trim(),
@@ -427,10 +539,18 @@ function LoginPage() {
       organization: String(data.get("organization") ?? "").trim(),
       role: String(data.get("role") ?? "advisor") as Persona["role"],
       note: String(data.get("note") ?? "").trim(),
+      preferredTabId: String(data.get("tab") ?? "sonography-advisors"),
+      ndaSignature: signature,
+      ndaSignerName: signerName.trim(),
+      ndaSignedAt: new Date().toISOString(),
     });
     event.currentTarget.reset();
+    setSignature("");
+    setSignerName("");
     setSubmitted(true);
   };
+
+  const activeMembers = members.filter((member) => member.status === "active");
 
   return (
     <section className="auth-page page">
@@ -439,7 +559,11 @@ function LoginPage() {
         <span className="media-chip">Design preview only</span>
       </div>
       <div className="auth-stack">
-        <div className="auth-panel"><p className="eyebrow">Private group access</p><h1>Enter the collaboration workspace.</h1><p>Approved members can only access groups assigned by the administrator. New members apply through onboarding before they can sign in.</p></div>
+        <div className="auth-panel">
+          <p className="eyebrow">Private community access</p>
+          <h1>Enter the collaboration workspace.</h1>
+          <p>Every applicant e-signs an NDA before admin approval. Approved members join their assigned community tab; only the admin can send direct messages.</p>
+        </div>
         <div className="auth-tabs" role="tablist" aria-label="Access options">
           <button className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")} role="tab" aria-selected={mode === "signin"}>Approved member</button>
           <button className={mode === "onboarding" ? "active" : ""} onClick={() => setMode("onboarding")} role="tab" aria-selected={mode === "onboarding"}>Request access</button>
@@ -447,9 +571,9 @@ function LoginPage() {
         {mode === "signin" ? (
           <div className="form-card role-entry approved-entry">
             <h2>Approved member preview</h2>
-            <p>Select a member to demonstrate their assigned access.</p>
+            <p>Select a member to demonstrate their assigned community access.</p>
             <div>
-              {members.map((person) => (
+              {activeMembers.map((person) => (
                 <button key={person.id} type="button" onClick={() => enter(person)}>
                   <span className="avatar" aria-hidden="true">{person.name.split(" ").map((part) => part[0]).slice(0, 2)}</span>
                   <span><strong>{person.name}</strong><small>{person.title} · {person.role}</small></span>
@@ -460,17 +584,59 @@ function LoginPage() {
           </div>
         ) : (
           <form className="form-card onboarding-form" onSubmit={apply}>
-            <h2>Member onboarding</h2>
-            {submitted && <p className="onboarding-success" role="status">Application submitted. An admin must approve it and assign a group.</p>}
+            <h2>Member onboarding + NDA</h2>
+            {submitted && <p className="onboarding-success" role="status">NDA submitted. An admin will review your e-signature and assign a community tab.</p>}
             <div className="form-grid">
               <div className="field"><label htmlFor="apply-name">Full name</label><input id="apply-name" name="name" required /></div>
               <div className="field"><label htmlFor="apply-email">Email</label><input id="apply-email" name="email" type="email" required /></div>
               <div className="field"><label htmlFor="apply-title">Title or specialty</label><input id="apply-title" name="title" required /></div>
               <div className="field"><label htmlFor="apply-organization">Organization</label><input id="apply-organization" name="organization" required /></div>
             </div>
-            <div className="field"><label htmlFor="apply-role">Professional role</label><select id="apply-role" name="role"><option value="advisor">Advisor / sonographer</option><option value="engineer">Engineer / designer</option><option value="faculty">University faculty</option><option value="legal">IP / legal</option></select></div>
+            <div className="field">
+              <label htmlFor="apply-role">Professional role</label>
+              <select id="apply-role" name="role">
+                <option value="advisor">Advisor / sonographer</option>
+                <option value="engineer">Engineer / designer</option>
+                <option value="faculty">University faculty</option>
+                <option value="legal">IP / legal</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="apply-tab">Preferred community tab</label>
+              <select id="apply-tab" name="tab">
+                {fixedGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+              </select>
+            </div>
             <div className="field"><label htmlFor="apply-note">How would you contribute?</label><textarea id="apply-note" name="note" rows={3} required /></div>
-            <button className="button" type="submit">Submit for approval</button>
+
+            <fieldset className="nda-fieldset">
+              <legend>Non-disclosure agreement</legend>
+              <p>
+                By signing below, you agree not to disclose confidential Shaw Innovations product,
+                clinical, or intellectual-property information shared in this collaboration preview.
+                This is a design preview of e-sign capture—not a binding production contract.
+              </p>
+              <div className="field">
+                <label htmlFor="nda-signer">Type your full legal name</label>
+                <input id="nda-signer" value={signerName} onChange={(event) => setSignerName(event.target.value)} required />
+              </div>
+              <div className="field">
+                <span className="field-label">Draw your signature</span>
+                <SignaturePad value={signature} onChange={setSignature} />
+                <button
+                  type="button"
+                  className="signature-clear"
+                  disabled={!signerName.trim()}
+                  onClick={() => setSignature(signerName.trim())}
+                >
+                  Use typed name as signature
+                </button>
+              </div>
+            </fieldset>
+
+            <button className="button" type="submit" disabled={!signature || !signerName.trim()}>
+              Submit NDA for approval
+            </button>
           </form>
         )}
       </div>
