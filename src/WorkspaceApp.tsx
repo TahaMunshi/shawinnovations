@@ -77,7 +77,7 @@ function WorkspaceNavigation({
   return (
     <>
       <aside className="space-rail" aria-label="Community tabs">
-        <Link className="space-logo" to="/" aria-label="Shaw Innovations home"><img src="/brand/logo-mark.png" alt="" /></Link>
+        <Link className="space-logo" to="/" aria-label="Shaw Solutions home"><img src="/brand/logo-full.png" alt="Shaw Solutions" /></Link>
         <span className="rail-rule" />
         {visibleGroups.map((group) => (
           <Link key={group.id} to={`/app/group/${group.id}`} aria-label={group.name} title={group.name}>
@@ -88,7 +88,13 @@ function WorkspaceNavigation({
 
       <nav className={`channel-sidebar ${mobileOpen ? "mobile-open" : ""}`} aria-label="Workspace navigation">
         <div className="channel-brand">
-          <div><strong>Shaw Innovations</strong><small>Medical device collaboration</small></div>
+          <div className="channel-brand-lockup">
+            <img src="/brand/logo-full.png" alt="" />
+            <span>
+              <strong>Shaw Solutions</strong>
+              <small>Medical device collaboration</small>
+            </span>
+          </div>
           <button className="sidebar-close" onClick={closeMobile} aria-label="Close workspace navigation"><X /></button>
         </div>
         <div className="sidebar-scroll">
@@ -438,9 +444,9 @@ export function AdminPage() {
     const email = String(data.get("email") ?? "");
     const groupId = String(data.get("group") ?? "");
     const group = fixedGroups.find((item) => item.id === groupId);
-    const subject = encodeURIComponent(`Invitation to ${group?.name ?? "Shaw Innovations"}`);
+    const subject = encodeURIComponent(`Invitation to ${group?.name ?? "Shaw Solutions"}`);
     const body = encodeURIComponent(
-      `You’re invited to join the ${group?.name ?? ""} community at Shaw Innovations.\n\nOpen the collaboration preview, complete onboarding, and e-sign the NDA. If you already signed the NDA in person, an administrator can add you directly.`,
+      `You’re invited to join the ${group?.name ?? ""} community at Shaw Solutions.\n\nOpen the collaboration preview, complete onboarding, and e-sign the NDA. If you already signed the NDA in person, an administrator can add you directly.`,
     );
     window.location.href = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
   };
@@ -632,7 +638,7 @@ export function AdminPage() {
     <div className="admin-console">
       <aside className={`admin-console-nav ${mobileNav ? "open" : ""}`}>
         <div className="admin-console-brand">
-          <img src="/brand/logo-mark.png" alt="" />
+          <img src="/brand/logo-full.png" alt="Shaw Solutions" />
           <div>
             <strong>Shaw Admin</strong>
             <small>Platform console</small>

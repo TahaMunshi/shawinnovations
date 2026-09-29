@@ -77,7 +77,7 @@ function Splash() {
     <motion.div
       className="splash"
       role="dialog"
-      aria-label="Shaw Innovations"
+      aria-label="Shaw Solutions"
       initial={{ opacity: 1 }}
       animate={{ opacity: leaving ? 0 : 1 }}
       transition={{ duration: 0.5, ease }}
@@ -88,7 +88,7 @@ function Splash() {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.7, ease }}
       >
-        <img src="/brand/logo-mark.png" alt="" />
+        <img src="/brand/logo-full.png" alt="Shaw Solutions" />
       </motion.div>
       <motion.span
         className="splash-rule"
@@ -101,7 +101,7 @@ function Splash() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.35, ease }}
       >
-        Medical device collaboration
+        Engineering excellence
       </motion.p>
     </motion.div>
   );
@@ -117,12 +117,8 @@ function PreviewBanner() {
 
 function Brand({ light = false }: { light?: boolean }) {
   return (
-    <Link className={`brand ${light ? "light" : ""}`} to="/" aria-label="Shaw Innovations home">
-      <img src="/brand/logo-mark.png" alt="" />
-      <span>
-        <strong>Shaw Innovations</strong>
-        <small>Medical Device Collaboration</small>
-      </span>
+    <Link className={`brand ${light ? "light" : ""}`} to="/" aria-label="Shaw Solutions home">
+      <img src="/brand/logo-full.png" alt="Shaw Solutions" />
     </Link>
   );
 }
@@ -204,7 +200,7 @@ function Footer() {
         <div><Brand /><p>Exploring better ways to collaborate on medical device innovation.</p></div>
         <div><strong>Preview notice</strong><p>Sample messages and access changes remain only in this browser. The permission controls shown here are not production authorization.</p></div>
       </div>
-      <div className="footer-bottom">© {new Date().getFullYear()} Shaw Innovations · Design preview</div>
+      <div className="footer-bottom">© {new Date().getFullYear()} Shaw Solutions · Design preview</div>
     </footer>
   );
 }
@@ -612,7 +608,7 @@ function LoginPage() {
             <fieldset className="nda-fieldset">
               <legend>Non-disclosure agreement</legend>
               <p>
-                By signing below, you agree not to disclose confidential Shaw Innovations product,
+                By signing below, you agree not to disclose confidential Shaw Solutions product,
                 clinical, or intellectual-property information shared in this collaboration preview.
                 This is a design preview of e-sign capture—not a binding production contract.
               </p>
@@ -645,7 +641,7 @@ function LoginPage() {
 }
 
 function NotFoundPage() {
-  return <section className="not-found page"><div className="brand-mark large" aria-hidden="true">S</div><p className="eyebrow">404 · Lost in collaboration</p><h1>This room isn’t in the preview.</h1><p>The address may be outdated, or the workspace has not been defined.</p><Link className="button" to="/">Return home</Link></section>;
+  return <section className="not-found page"><img className="brand-logo-fallback" src="/brand/logo-full.png" alt="Shaw Solutions" /><p className="eyebrow">404 · Lost in collaboration</p><h1>This room isn’t in the preview.</h1><p>The address may be outdated, or the workspace has not been defined.</p><Link className="button" to="/">Return home</Link></section>;
 }
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -663,7 +659,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: bool
     if (this.state.failed) {
       return (
         <section className="not-found page" role="alert">
-          <div className="brand-mark large" aria-hidden="true">S</div>
+          <img className="brand-logo-fallback" src="/brand/logo-full.png" alt="Shaw Solutions" />
           <p className="eyebrow">Preview error</p>
           <h1>This screen could not be displayed.</h1>
           <p>Reload the design preview or return to its home page.</p>

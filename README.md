@@ -1,4 +1,4 @@
-# Shaw Innovations — public design preview
+# Shaw Solutions — public design preview
 
 A Vite, React 19, and TypeScript single-page application exploring a
 Slack-style medical-device collaboration experience built around six community
