@@ -79,6 +79,7 @@ test("NDA onboarding requires admin approval and community assignment", async ({
   await expect(request.getByText(/nda e-signature/i)).toBeVisible();
   await request.getByLabel("Assign community tab").selectOption("design-prototypes");
   await request.getByRole("button", { name: "Approve and add" }).click();
+  await page.getByRole("navigation", { name: "Admin navigation" }).getByRole("button", { name: /Users/i }).click();
   await page.getByRole("tab", { name: /Design & Prototypes/i }).click();
   await expect(page.locator(".member-admin-list").getByText("Casey Lee")).toBeVisible();
 });
@@ -106,6 +107,7 @@ test("admin can DM, filter tabs, and start Zoom in a community", async ({ page }
   await expect(page.getByText("Please review the latest advisor notes.")).toBeVisible();
 
   await page.goto("/admin");
+  await page.getByRole("navigation", { name: "Admin navigation" }).getByRole("button", { name: /Users/i }).click();
   await page.getByRole("tab", { name: /Sonography Advisors/i }).click();
   await expect(page.locator(".member-admin-list").getByText("Jordan Ellis")).toBeVisible();
   await expect(page.locator(".member-admin-list").getByText("Morgan Chen")).toHaveCount(0);
@@ -121,6 +123,7 @@ test("admin can DM, filter tabs, and start Zoom in a community", async ({ page }
 
 test("admin can add, suspend, and remove users", async ({ page }) => {
   await login(page, "admin", "/admin");
+  await page.getByRole("navigation", { name: "Admin navigation" }).getByRole("button", { name: /Add Member/i }).click();
   const addForm = page.locator("form.admin-panel").filter({ hasText: "Add member directly" });
   await addForm.getByLabel("Full name").fill("Riley Quinn");
   await addForm.getByLabel("Email").fill("riley@example.test");
